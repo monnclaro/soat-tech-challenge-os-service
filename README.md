@@ -30,9 +30,22 @@ Regras de dependência entre camadas garantidas por testes de arquitetura (NetAr
 
 PostgreSQL (`soat_os`) — instância compartilhada provisionada pelo repositório [`infra-database`](https://github.com/monnclaro/soat-tech-challenge-infra-database), banco lógico e usuário próprios e isolados (nenhum outro serviço acessa este banco diretamente).
 
+## Endpoints principais
+
+- `POST /api/auth/login` — login do back-office (email/senha).
+- `api/v1/clientes`, `api/v1/clientes/{idCliente}/veiculos`, `api/v1/produtos`, `api/v1/servicos` — CRUD completo (catálogo), `[Authorize(Roles = "Admin")]`.
+- `api/v1/ordens-servico` — abertura, consulta (por id, paginada, paginada por documento do cliente), histórico de status, entrega e remoção.
+- `api/v1/ordens-servico/{id}/{iniciar-diagnostico,diagnostico,pagamento/aprovacao,cancelamento,finalizacao}` — passos da saga, hoje endpoints internos (Admin-only) chamados manualmente; substituídos por consumers RabbitMQ/MassTransit quando a mensageria for ligada.
+
 ## Status
 
-Scaffold inicial (Clean Architecture + DI + Serilog + JWT + health check). Entidades de domínio, casos de uso, saga (MassTransit) e testes de negócio chegam nos próximos PRs — ver ordem de execução no plano.
+- ✅ Domínio, EF Core (Postgres) e CRUD completo de Cliente/Veiculo/Produto/Servico/OrdemServico (Application + Api).
+- ✅ Login do back-office (JWT).
+- ✅ Testes unitários de domínio + testes de arquitetura (NetArchTest).
+- ⏳ Saga real via RabbitMQ/MassTransit (hoje os passos são endpoints internos — ver comentários no `OrdemServicosController`).
+- ⏳ BDD do fluxo completo, gate de cobertura, SonarCloud, Dockerfile validado em cluster, k8s manifests, CI/CD.
+
+Ver [`PLANO-FASE-4-MICROSSERVICOS.md`](../PLANO-FASE-4-MICROSSERVICOS.md) para a ordem de execução completa.
 
 ## Rodando localmente
 
