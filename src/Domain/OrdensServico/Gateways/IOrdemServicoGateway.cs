@@ -10,4 +10,5 @@ public interface IOrdemServicoGateway
     Task<(IReadOnlyList<OrdemServico> Items, int Total)> BuscarPaginadoPorDocumentoCliente(string documento, PagedRequest paginacao, CancellationToken ct = default);
     Task Salvar(OrdemServico ordemServico, CancellationToken ct = default);
     Task Atualizar(OrdemServico ordemServico, CancellationToken ct = default);
+    Task Remover(OrdemServico ordemServico, CancellationToken ct = default);
 }

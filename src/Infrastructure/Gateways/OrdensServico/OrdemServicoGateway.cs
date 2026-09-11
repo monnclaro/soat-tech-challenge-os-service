@@ -71,4 +71,10 @@ public class OrdemServicoGateway : IOrdemServicoGateway
 
     public async Task Atualizar(OrdemServico ordemServico, CancellationToken ct = default) =>
         await _db.SaveChangesAsync(ct);
+
+    public async Task Remover(OrdemServico ordemServico, CancellationToken ct = default)
+    {
+        _db.OrdemServico.Remove(ordemServico);
+        await _db.SaveChangesAsync(ct);
+    }
 }
