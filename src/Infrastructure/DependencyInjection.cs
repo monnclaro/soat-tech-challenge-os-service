@@ -1,9 +1,13 @@
+using Application.Common.Interfaces;
 using Application.Login.UseCases.Interfaces;
 using Infrastructure.Database;
 using Infrastructure.DomainEvents;
+using Infrastructure.Messaging;
+using Infrastructure.Messaging.Consumers;
 using Infrastructure.Security.BCrypt;
 using Infrastructure.Security.Jwt;
 using Infrastructure.Seeders;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
@@ -18,7 +22,8 @@ public static class DependencyInjection
         IConfiguration configuration) =>
         services
             .AddServices()
-            .AddDatabase(configuration);
+            .AddDatabase(configuration)
+            .AddMessaging(configuration);
 
     private static IServiceCollection AddServices(this IServiceCollection services)
     {
@@ -44,6 +49,36 @@ public static class DependencyInjection
         services.AddDbContext<OsServiceDbContext>(options =>
             options.UseNpgsql(connectionString,
                 npgsqlOptions => npgsqlOptions.MigrationsHistoryTable(HistoryRepository.DefaultTableName)));
+
+        return services;
+    }
+
+    private static IServiceCollection AddMessaging(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMq"));
+        services.AddScoped<ISagaCommandBus, MassTransitSagaCommandBus>();
+
+        var rabbitMq = configuration.GetSection("RabbitMq").Get<RabbitMqSettings>() ?? new RabbitMqSettings();
+
+        services.AddMassTransit(x =>
+        {
+            x.AddConsumer<DiagnosticoFinalizadoConsumer>();
+            x.AddConsumer<DiagnosticoFalhouConsumer>();
+            x.AddConsumer<PagamentoAprovadoConsumer>();
+            x.AddConsumer<PagamentoRecusadoConsumer>();
+            x.AddConsumer<ExecucaoFinalizadaConsumer>();
+
+            x.UsingRabbitMq((context, cfg) =>
+            {
+                cfg.Host(rabbitMq.Host, rabbitMq.VirtualHost, h =>
+                {
+                    h.Username(rabbitMq.Username);
+                    h.Password(rabbitMq.Password);
+                });
+
+                cfg.ConfigureEndpoints(context);
+            });
+        });
 
         return services;
     }

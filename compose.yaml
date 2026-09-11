@@ -16,6 +16,31 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+    networks:
+      - soat-os-network
+
+    restart: unless-stopped
+
+  # Compartilhado entre os 3 microsserviços quando rodando localmente lado a
+  # lado (aponte RabbitMq__Host dos outros serviços para este container, via
+  # uma rede Docker externa comum, ou rode-os individualmente contra este
+  # broker). Em produção, RabbitMQ é infraestrutura compartilhada de
+  # plataforma provisionada no infra-k8s — ver PLANO-FASE-4-MICROSSERVICOS.md.
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
     networks:
       - soat-os-network

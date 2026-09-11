@@ -35,6 +35,7 @@ public class OrdemServico : Entity
         DataCriacao = DateTime.UtcNow;
 
         Raise(new OrdemServicoStatusAlteradoDomainEvent(Id, Status));
+        Raise(new OrdemServicoAbertaDomainEvent(Id, IdCliente, IdVeiculo));
     }
 
     // Disparado pelo orquestrador da saga ao comandar "IniciarDiagnostico" no Execução Service.
@@ -71,6 +72,7 @@ public class OrdemServico : Entity
         Status = StatusOrdemServico.AguardandoAprovacao;
 
         Raise(new OrdemServicoStatusAlteradoDomainEvent(Id, Status));
+        Raise(new DiagnosticoRegistradoDomainEvent(Id, Servicos, Produtos, ValorTotal));
     }
 
     // Consumido a partir do evento PagamentoAprovado (Billing Service).
