@@ -21,6 +21,7 @@ builder.Host.UseSerilog();
 
 builder.Services
     .AddApplication()
+    .AddPresentation()
     .AddInfrastructure(builder.Configuration)
     .AddJwtAuthentication(builder.Configuration)
     .AddHealthChecks();
