@@ -2,7 +2,7 @@ using Domain.Common.Events;
 
 namespace Application.Common.Interfaces;
 
-public interface IDomainEventHandler<in TDomainEvent> where TDomainEvent : IDomainEvent
+public interface IDomainEventHandler<in T> where T : IDomainEvent
 {
-    Task HandleAsync(TDomainEvent domainEvent, CancellationToken cancellationToken = default);
+    Task Handle(T domainEvent, CancellationToken cancellationToken);
 }

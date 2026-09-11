@@ -1,3 +1,4 @@
+using Infrastructure.Database.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
@@ -15,6 +16,6 @@ public class OsServiceDbContextFactory : IDesignTimeDbContextFactory<OsServiceDb
             .UseNpgsql("Host=localhost;Database=soat_os;Username=postgres;Password=postgres")
             .Options;
 
-        return new OsServiceDbContext(options);
+        return new OsServiceDbContext(options, new NoopDomainEventsDispatcher());
     }
 }

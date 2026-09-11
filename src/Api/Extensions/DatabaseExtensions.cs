@@ -1,4 +1,5 @@
 using Infrastructure.Database;
+using Infrastructure.Seeders;
 using Microsoft.EntityFrameworkCore;
 
 namespace Api.Extensions;
@@ -12,8 +13,7 @@ public static class DatabaseExtensions
         var db = scope.ServiceProvider.GetRequiredService<OsServiceDbContext>();
         await db.Database.MigrateAsync();
 
-        // Seeder por domínio entra aqui conforme as entidades forem portadas
-        // (ver PLANO-FASE-4-MICROSSERVICOS.md) — mesmo padrão do monolito
-        // (IDatabaseSeeder / DatabaseSeeder em Infrastructure/Seeders).
+        var seeder = scope.ServiceProvider.GetRequiredService<IDatabaseSeeder>();
+        await seeder.SeedAsync();
     }
 }

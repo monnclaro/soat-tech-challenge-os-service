@@ -1,4 +1,9 @@
+using Application.Login.UseCases.Interfaces;
 using Infrastructure.Database;
+using Infrastructure.DomainEvents;
+using Infrastructure.Security.BCrypt;
+using Infrastructure.Security.Jwt;
+using Infrastructure.Seeders;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
@@ -17,8 +22,12 @@ public static class DependencyInjection
 
     private static IServiceCollection AddServices(this IServiceCollection services)
     {
-        // Gateways (implementações dos ports de Domain/Application) entram aqui conforme
-        // as entidades forem portadas do monolito — ver PLANO-FASE-4-MICROSSERVICOS.md.
+        services.AddTransient<IDomainEventsDispatcher, DomainEventsDispatcher>();
+
+        services.AddScoped<IDatabaseSeeder, DatabaseSeeder>();
+        services.AddScoped<ITokenProvider, JwtTokenProvider>();
+        services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
+
         services.Scan(scan => scan
             .FromApplicationDependencies()
             .AddClasses(c => c.Where(t => t.Name.EndsWith("Gateway")))
