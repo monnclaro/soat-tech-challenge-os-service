@@ -76,9 +76,9 @@ Contratos em `Soat.Contracts.Saga` (`src/Application/Messaging/Contracts/SagaCon
 - ✅ Domínio, EF Core (Postgres) e CRUD completo de Cliente/Veiculo/Produto/Servico/OrdemServico (Application + Api).
 - ✅ Login do back-office (JWT).
 - ✅ Mensageria RabbitMQ/MassTransit (consumers + publishers da saga), verificada de ponta a ponta contra broker e banco reais.
-- ✅ Testes unitários de domínio, use cases da saga e handlers de mensageria + testes de arquitetura (NetArchTest).
+- ✅ Testes unitários de domínio, use cases da saga e handlers de mensageria + testes de arquitetura (NetArchTest) — 193 testes, ~91% de cobertura de linha.
 - ✅ Manifests Kubernetes (`k8s/`) e pipeline CI/CD (build, testes com gate de cobertura ≥80%, SonarCloud, deploy).
-- ⏳ BDD do fluxo completo da saga (em andamento).
+- ✅ BDD do fluxo completo da saga (Reqnroll — cenário feliz e o caminho de compensação com pagamento recusado).
 
 ## Rodando localmente
 
@@ -89,13 +89,17 @@ docker compose up --build
 
 API em `http://localhost:8081`, documentação OpenAPI (Scalar) em `/scalar` (ambiente de desenvolvimento), health check em `/health`.
 
+Especificação OpenAPI (Swagger) exportada em [`docs/openapi.json`](./docs/openapi.json) — importável direto no Postman (File > Import) ou em qualquer ferramenta compatível com OpenAPI 3. Com a API rodando localmente, a versão sempre atualizada também fica disponível em `/openapi/v1.json`.
+
 ## Testes
 
 ```bash
 dotnet test
 ```
 
-62/62 testes passando (unit + arquitetura). Cobertura de linha em ~80%+, com gate no CI (ver abaixo).
+193/193 testes passando (unit + arquitetura + BDD). Cobertura de linha em ~91%, com gate de 80% no CI (ver abaixo).
+
+BDD (Reqnroll) do fluxo completo da saga em [`tests/Tests/Features/SagaOrdemServico.feature`](tests/Tests/Features/SagaOrdemServico.feature) — cenário feliz (`Recebida → ... → Finalizada`) e caminho de compensação (pagamento recusado → `Cancelada`).
 
 ## CI/CD
 
