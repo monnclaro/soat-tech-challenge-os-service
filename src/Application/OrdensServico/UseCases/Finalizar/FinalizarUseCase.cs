@@ -5,8 +5,8 @@ namespace Application.OrdensServico.UseCases.Finalizar;
 
 // Último passo automático da saga: hoje disparado via endpoint interno;
 // futuramente reage ao evento "ExecucaoFinalizada" publicado pelo Execução
-// Service — ver PLANO-FASE-4-MICROSSERVICOS.md. A entrega ao cliente
-// (Entregar) continua sendo um passo manual, fora da saga.
+// Service. A entrega ao cliente (Entregar) continua sendo um passo manual,
+// fora da saga.
 public class FinalizarUseCase : IUseCase
 {
     private readonly IOrdemServicoGateway _gateway;

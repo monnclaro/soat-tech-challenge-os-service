@@ -8,8 +8,7 @@ namespace Infrastructure.Messaging;
 // (não Send) de propósito, mesmo para os tipos "comando": nesta topologia
 // simples, cada tipo de mensagem tem exatamente um consumidor esperado (o
 // outro microsserviço dono daquele passo), então publish/subscribe já resolve
-// o roteamento sem precisar endereçar filas explicitamente — ver
-// PLANO-FASE-4-MICROSSERVICOS.md.
+// o roteamento sem precisar endereçar filas explicitamente.
 public class MassTransitSagaCommandBus : ISagaCommandBus
 {
     private readonly IPublishEndpoint _publishEndpoint;

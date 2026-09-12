@@ -1,9 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
 using Domain.Clientes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Database.Configurations.Clientes;
 
+// Mapeamento fluente do EF Core — só chamadas de builder, sem lógica de negócio a testar.
+[ExcludeFromCodeCoverage]
 public class ClienteConfiguration : IEntityTypeConfiguration<Cliente>
 {
     public void Configure(EntityTypeBuilder<Cliente> builder)

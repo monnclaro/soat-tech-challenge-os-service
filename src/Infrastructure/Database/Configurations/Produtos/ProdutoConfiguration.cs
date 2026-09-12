@@ -1,9 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using Domain.Produtos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Database.Configurations.Produtos;
 
+[ExcludeFromCodeCoverage]
 public class ProdutoConfiguration : IEntityTypeConfiguration<Produto>
 {
     public void Configure(EntityTypeBuilder<Produto> builder)

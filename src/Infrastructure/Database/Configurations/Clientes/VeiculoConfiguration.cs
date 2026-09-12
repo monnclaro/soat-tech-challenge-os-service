@@ -1,9 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using Domain.Clientes.Veiculos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Database.Configurations.Clientes;
 
+[ExcludeFromCodeCoverage]
 public class VeiculoConfiguration : IEntityTypeConfiguration<Veiculo>
 {
     public void Configure(EntityTypeBuilder<Veiculo> builder)

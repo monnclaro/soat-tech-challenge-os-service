@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Api.Controllers.Authentication.Requests;
 using Api.Presenters.Authentication;
 using Application.Login.Controllers;
@@ -9,6 +10,8 @@ namespace Api.Controllers.Authentication;
 [ApiController]
 [Route("api/auth")]
 [Produces("application/json")]
+// Controller "fino" (ver comentário em OrdemServicosController).
+[ExcludeFromCodeCoverage]
 public class AuthenticationController : ControllerBase
 {
     private readonly LoginController _controller;

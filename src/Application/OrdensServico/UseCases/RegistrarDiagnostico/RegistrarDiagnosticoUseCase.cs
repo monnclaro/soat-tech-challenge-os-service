@@ -7,9 +7,9 @@ namespace Application.OrdensServico.UseCases.RegistrarDiagnostico;
 
 // Passo 3 da saga: hoje disparado via endpoint interno recebendo o mesmo
 // payload que, futuramente, virá no evento "DiagnosticoFinalizado" publicado
-// pelo Execução Service (nome/valor snapshot dos itens identificados) — ver
-// PLANO-FASE-4-MICROSSERVICOS.md. Ao concluir, o próximo passo da saga é
-// comandar o Billing Service a gerar o orçamento (ainda não ligado).
+// pelo Execução Service (nome/valor snapshot dos itens identificados). Ao
+// concluir, o próximo passo da saga é comandar o Billing Service a gerar o
+// orçamento (ainda não ligado).
 public class RegistrarDiagnosticoUseCase : IUseCase
 {
     private readonly IOrdemServicoGateway _gateway;

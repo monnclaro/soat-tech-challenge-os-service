@@ -1,9 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using Domain.OrdensServico;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Database.Configurations.OrdensServico;
 
+[ExcludeFromCodeCoverage]
 public class OrdemServicoConfiguration : IEntityTypeConfiguration<OrdemServico>
 {
     public void Configure(EntityTypeBuilder<OrdemServico> builder)

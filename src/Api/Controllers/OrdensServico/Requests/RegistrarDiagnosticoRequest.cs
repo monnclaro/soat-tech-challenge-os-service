@@ -14,8 +14,7 @@ public record RegistrarDiagnosticoProdutoRequest(
     [property: JsonPropertyName("quantidade")] decimal Quantidade);
 
 // Payload interno — hoje chamado diretamente (endpoint), futuramente o mesmo
-// formato do evento "DiagnosticoFinalizado" consumido do Execução Service
-// (ver PLANO-FASE-4-MICROSSERVICOS.md).
+// formato do evento "DiagnosticoFinalizado" consumido do Execução Service.
 public record RegistrarDiagnosticoRequest(
     [property: JsonPropertyName("servicos")] List<RegistrarDiagnosticoServicoRequest> Servicos,
     [property: JsonPropertyName("produtos")] List<RegistrarDiagnosticoProdutoRequest> Produtos);

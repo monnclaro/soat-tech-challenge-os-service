@@ -9,8 +9,7 @@ namespace Tests.OrdensServico.Unit;
 
 // Cobre o agregado OrdemServico após o redesenho da Fase 4: o diagnóstico e a
 // execução item a item saíram daqui (agora vivem no Execução Service) e a
-// máquina de estados passou a refletir os passos da saga — ver
-// PLANO-FASE-4-MICROSSERVICOS.md.
+// máquina de estados passou a refletir os passos da saga.
 public class OrdemServicoTests
 {
     private static OrdemServico CriarOrdemServicoRecebida()

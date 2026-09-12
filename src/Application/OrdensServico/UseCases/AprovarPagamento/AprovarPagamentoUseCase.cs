@@ -6,7 +6,7 @@ namespace Application.OrdensServico.UseCases.AprovarPagamento;
 // Passo 4 da saga: hoje disparado via endpoint interno; futuramente reage ao
 // evento "PagamentoAprovado" publicado pelo Billing Service. Ao concluir, o
 // próximo passo da saga é comandar o Execução Service a iniciar a execução
-// (ainda não ligado) — ver PLANO-FASE-4-MICROSSERVICOS.md.
+// (ainda não ligado).
 public class AprovarPagamentoUseCase : IUseCase
 {
     private readonly IOrdemServicoGateway _gateway;

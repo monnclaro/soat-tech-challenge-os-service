@@ -1,9 +1,12 @@
+using System.Diagnostics.CodeAnalysis;
 using Infrastructure.Database;
 using Infrastructure.Seeders;
 using Microsoft.EntityFrameworkCore;
 
 namespace Api.Extensions;
 
+// Bootstrap de startup (migrate + seed) — sem lógica de negócio a testar.
+[ExcludeFromCodeCoverage]
 public static class DatabaseExtensions
 {
     public static async Task InitializeDatabaseAsync(this WebApplication app)

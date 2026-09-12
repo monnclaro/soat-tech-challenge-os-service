@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Infrastructure.Security.Jwt;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -5,6 +6,8 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Api.Extensions;
 
+// Composição de DI (JWT bearer) — sem lógica de negócio a testar.
+[ExcludeFromCodeCoverage]
 public static class AuthExtensions
 {
     public static IServiceCollection AddJwtAuthentication(

@@ -7,9 +7,9 @@ namespace Application.OrdensServico.UseCases.Inserir;
 
 // Abertura da OS: só cabeçalho (cliente + veículo). O diagnóstico (que
 // identifica os serviços/produtos necessários) passou a ser responsabilidade
-// do Execução Service, disparado de forma assíncrona a partir daqui — ver
-// PLANO-FASE-4-MICROSSERVICOS.md. Sem mensageria ligada ainda: o próximo passo
-// da saga (IniciarDiagnostico) é exposto como use case/endpoint separado, a
+// do Execução Service, disparado de forma assíncrona a partir daqui. Sem
+// mensageria ligada ainda: o próximo passo da saga (IniciarDiagnostico) é
+// exposto como use case/endpoint separado, a
 // ser substituído por um publish real quando o RabbitMQ/MassTransit entrar.
 public class InserirOrdemServicoUseCase : IUseCase
 {

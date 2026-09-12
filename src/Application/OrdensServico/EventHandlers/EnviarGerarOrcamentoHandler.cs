@@ -5,7 +5,7 @@ using Soat.Contracts.Saga;
 namespace Application.OrdensServico.EventHandlers;
 
 // Passo 3 -> 4 da saga: ao concluir o registro do diagnóstico, comanda o
-// Billing Service a gerar o orçamento — ver PLANO-FASE-4-MICROSSERVICOS.md.
+// Billing Service a gerar o orçamento.
 internal sealed class EnviarGerarOrcamentoHandler : IDomainEventHandler<DiagnosticoRegistradoDomainEvent>
 {
     private readonly ISagaCommandBus _bus;

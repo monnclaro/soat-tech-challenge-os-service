@@ -16,8 +16,7 @@ using Moq;
 namespace Tests.OrdensServico.Unit;
 
 // Testa os use cases que hoje expõem, como endpoints internos, cada passo da
-// saga (a serem substituídos por consumers RabbitMQ/MassTransit) — ver
-// PLANO-FASE-4-MICROSSERVICOS.md.
+// saga (a serem substituídos por consumers RabbitMQ/MassTransit).
 public class SagaUseCasesTests
 {
     private static OrdemServico CriarOrdemServico(Action<OrdemServico>? preparar = null)

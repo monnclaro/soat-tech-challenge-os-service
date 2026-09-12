@@ -64,3 +64,8 @@ Thumbs.db
 # Environment files
 # =========================
 .env
+
+# =========================
+# Reqnroll (gerado a partir dos .feature no build, ver tests/Tests/Features)
+# =========================
+*.feature.cs

@@ -1,9 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using Domain.Servicos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Database.Configurations.Servicos;
 
+[ExcludeFromCodeCoverage]
 public class ServicoConfiguration : IEntityTypeConfiguration<Servico>
 {
     public void Configure(EntityTypeBuilder<Servico> builder)

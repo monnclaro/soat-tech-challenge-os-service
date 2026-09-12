@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Api.Controllers.Clientes.Requests;
 using Api.Presenters.Clientes;
 using Application.Clientes.Controllers;
@@ -17,6 +18,8 @@ namespace Api.Controllers.Clientes;
 [Route("api/v1/clientes")]
 [Authorize(Roles = "Admin")]
 [Produces("application/json")]
+// Controller "fino" (ver comentário em OrdemServicosController).
+[ExcludeFromCodeCoverage]
 public class ClientesController : ControllerBase
 {
     private readonly ClienteController _controller;

@@ -6,8 +6,7 @@ namespace Application.OrdensServico.UseCases.IniciarDiagnostico;
 // Passo 2 da saga: hoje disparado manualmente via endpoint interno; quando o
 // RabbitMQ/MassTransit entrar, isso vira reação a um evento próprio (ex.:
 // "OrdemServicoCriada") já consumido pelo orquestrador, que então publica o
-// comando "IniciarDiagnostico" para o Execução Service — ver
-// PLANO-FASE-4-MICROSSERVICOS.md.
+// comando "IniciarDiagnostico" para o Execução Service.
 public class IniciarDiagnosticoUseCase : IUseCase
 {
     private readonly IOrdemServicoGateway _gateway;

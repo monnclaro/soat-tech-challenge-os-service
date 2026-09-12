@@ -4,7 +4,7 @@ using Domain.OrdensServico.Events;
 namespace Application.OrdensServico.EventHandlers;
 
 // Passo 1 -> 2 da saga: ao abrir a OS, comanda o Execução Service a iniciar o
-// diagnóstico — ver PLANO-FASE-4-MICROSSERVICOS.md.
+// diagnóstico.
 internal sealed class EnviarIniciarDiagnosticoHandler : IDomainEventHandler<OrdemServicoAbertaDomainEvent>
 {
     private readonly ISagaCommandBus _bus;

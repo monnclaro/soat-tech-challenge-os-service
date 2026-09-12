@@ -4,9 +4,9 @@ namespace Domain.OrdensServico.Servicos;
 
 // Snapshot do item de serviço identificado no diagnóstico (nome/valor no momento do
 // registro). O ciclo de vida de execução em si (iniciar/finalizar reparo) passou a
-// viver no Execução Service (fila de execução, MongoDB) — ver ADR na raiz do plano
-// (PLANO-FASE-4-MICROSSERVICOS.md) — este serviço só guarda o resultado consolidado
-// para consulta/histórico e como base de cálculo do valor total da OS.
+// viver no Execução Service (fila de execução, MongoDB) — este serviço só guarda
+// o resultado consolidado para consulta/histórico e como base de cálculo do valor
+// total da OS.
 public class OrdemServicoServico : Entity
 {
     public Guid Id { get; private set; }

@@ -8,7 +8,7 @@ namespace Infrastructure.Messaging.Consumers;
 // Consome o evento publicado pelo Execução Service ao concluir o diagnóstico,
 // reaproveitando o mesmo RegistrarDiagnosticoUseCase usado pelo endpoint
 // interno equivalente (única fonte de verdade da regra de negócio,
-// independente do meio de entrada) — ver PLANO-FASE-4-MICROSSERVICOS.md.
+// independente do meio de entrada).
 public class DiagnosticoFinalizadoConsumer : IConsumer<DiagnosticoFinalizado>
 {
     private readonly IOrdemServicoGateway _gateway;

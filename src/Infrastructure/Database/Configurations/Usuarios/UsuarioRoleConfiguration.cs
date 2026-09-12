@@ -1,9 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using Domain.Usuarios.Roles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Database.Configurations.Usuarios;
 
+[ExcludeFromCodeCoverage]
 public class UsuarioRoleConfiguration : IEntityTypeConfiguration<UsuarioRole>
 {
     public void Configure(EntityTypeBuilder<UsuarioRole> builder)

@@ -5,8 +5,7 @@ namespace Application.OrdensServico.UseCases.Cancelar;
 
 // Compensação da saga: hoje disparado via endpoint interno; futuramente reage
 // a "PagamentoRecusado"/expiração (Billing Service) ou a um diagnóstico que
-// concluiu o veículo como não atendível (Execução Service) — ver
-// PLANO-FASE-4-MICROSSERVICOS.md.
+// concluiu o veículo como não atendível (Execução Service).
 public class CancelarUseCase : IUseCase
 {
     private readonly IOrdemServicoGateway _gateway;

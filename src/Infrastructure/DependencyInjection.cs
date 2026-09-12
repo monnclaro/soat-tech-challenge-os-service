@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Application.Common.Interfaces;
 using Application.Login.UseCases.Interfaces;
 using Infrastructure.Database;
@@ -15,6 +16,8 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Infrastructure;
 
+// Composição de DI (DbContext/MassTransit/serviços) — sem lógica de negócio a testar.
+[ExcludeFromCodeCoverage]
 public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(

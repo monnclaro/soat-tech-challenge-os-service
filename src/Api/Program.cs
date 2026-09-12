@@ -56,4 +56,5 @@ await app.RunAsync();
 // Ponto de ancoragem público para WebApplicationFactory (testes de integração) e
 // NetArchTest (testes de arquitetura) — top-level statements geram um Program
 // internal por padrão.
+[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage] // Composition root — sem lógica de negócio a testar.
 public partial class Program;

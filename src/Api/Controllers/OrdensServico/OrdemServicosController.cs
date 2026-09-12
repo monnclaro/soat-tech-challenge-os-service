@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using Api.Controllers.OrdensServico.Requests;
 using Api.Presenters.OrdensServico;
@@ -24,6 +25,10 @@ namespace Api.Controllers.OrdensServico;
 [ApiController]
 [Route("api/v1/ordens-servico")]
 [Produces("application/json")]
+// Controller "fino": só mapeia request -> UseCase.Execute() -> presenter.Result, sem
+// nenhuma lógica de branching própria (a lógica real está nos UseCases/Presenters,
+// cobertos por testes dedicados) — ver instruções de cobertura do projeto.
+[ExcludeFromCodeCoverage]
 public class OrdemServicosController : ControllerBase
 {
     private readonly OrdemServicoController _controller;
@@ -122,8 +127,7 @@ public class OrdemServicosController : ControllerBase
     // A partir daqui: passos da saga hoje expostos como endpoints internos
     // (Admin-only) para permitir testar o fluxo ponta a ponta antes da
     // mensageria estar ligada. Cada um vira uma reação a um evento consumido
-    // via RabbitMQ/MassTransit em um PR futuro — ver
-    // PLANO-FASE-4-MICROSSERVICOS.md.
+    // via RabbitMQ/MassTransit em um PR futuro.
 
     [HttpPatch("{id:guid}/iniciar-diagnostico")]
     [Authorize(Roles = "Admin")]

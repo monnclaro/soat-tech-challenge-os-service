@@ -28,7 +28,7 @@ services:
   # lado (aponte RabbitMq__Host dos outros serviços para este container, via
   # uma rede Docker externa comum, ou rode-os individualmente contra este
   # broker). Em produção, RabbitMQ é infraestrutura compartilhada de
-  # plataforma provisionada no infra-k8s — ver PLANO-FASE-4-MICROSSERVICOS.md.
+  # plataforma provisionada no infra-k8s.
   rabbitmq:
     image: rabbitmq:3-management-alpine
 

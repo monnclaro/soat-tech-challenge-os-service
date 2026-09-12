@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Api.Controllers.Clientes.Veiculos.Requests;
 using Api.Presenters.Clientes.Veiculos;
 using Application.Clientes.Veiculos.Controllers;
@@ -17,6 +18,8 @@ namespace Api.Controllers.Clientes.Veiculos;
 [Route("api/v1/clientes/{idCliente:guid}/veiculos")]
 [Authorize(Roles = "Admin")]
 [Produces("application/json")]
+// Controller "fino" (ver comentário em OrdemServicosController).
+[ExcludeFromCodeCoverage]
 public class VeiculosController : ControllerBase
 {
     private readonly VeiculoController _controller;

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Api.Controllers.Produtos.Requests;
 using Api.Presenters.Produtos;
 using Application.Produtos.Controllers;
@@ -18,6 +19,8 @@ namespace Api.Controllers.Produtos;
 [Route("api/v1/produtos")]
 [Authorize(Roles = "Admin")]
 [Produces("application/json")]
+// Controller "fino" (ver comentário em OrdemServicosController).
+[ExcludeFromCodeCoverage]
 public class ProdutosController : ControllerBase
 {
     private readonly ProdutoController _controller;

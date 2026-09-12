@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Application.Common.Interfaces;
 using Application.Produtos.UseCases.DecrementarEstoque;
 using Microsoft.Extensions.DependencyInjection;
@@ -5,6 +6,8 @@ using SharedKernel.Interfaces;
 
 namespace Application;
 
+// Composição de DI (scan de assembly) — sem lógica de negócio a testar.
+[ExcludeFromCodeCoverage]
 public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)

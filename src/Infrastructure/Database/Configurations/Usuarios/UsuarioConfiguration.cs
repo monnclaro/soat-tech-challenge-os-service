@@ -1,9 +1,11 @@
+using System.Diagnostics.CodeAnalysis;
 using Domain.Usuarios;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Infrastructure.Database.Configurations.Usuarios;
 
+[ExcludeFromCodeCoverage]
 public class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
 {
     public void Configure(EntityTypeBuilder<Usuario> builder)
