@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: soat-os-api-config
+  namespace: soat-os
+
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+
+  # ConnectionStrings__Default, JwtSettings__Secret e RabbitMq__* saem daqui (não ficam em
+  # texto plano num ConfigMap versionado) — o CI/CD gera o Secret soat-os-api-secret em
+  # tempo de deploy a partir do SSM Parameter Store (RDS via infra-database, JWT/RabbitMQ
+  # via infra-k8s). Ver README > "Deploy".
+
+  # New Relic .NET agent — instrumentação via init container (deployment.yaml), sem
+  # alterar a imagem/código da aplicação. Mesmo padrão já validado no monolito de origem
+  # (soat-tech-challenge) e nos outros 2 microsserviços.
+  CORECLR_ENABLE_PROFILING: "1"
+  CORECLR_PROFILER: "{36032161-FFC0-4B61-B559-F6C5D41BAE5A}"
+  CORECLR_PROFILER_PATH: "/newrelic-instrumentation/libNewRelicProfiler.so"
+  CORECLR_NEWRELIC_HOME: "/newrelic-instrumentation"
+  NEW_RELIC_APP_NAME: "soat-os-service"

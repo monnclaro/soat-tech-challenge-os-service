@@ -1,0 +1,35 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+
+metadata:
+  name: soat-os-api-hpa
+  namespace: soat-os
+
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: soat-os-api
+
+  # minReplicas/maxReplicas reduzidos frente ao monolito (que rodava minReplicas: 2 em 1
+  # único serviço): agora são 3 microsserviços disputando o mesmo node group t3.small
+  # (ver ADR 0008 do monolito de origem, atualizada para refletir a divisão em Fase 4) —
+  # cada um roda com folga menor, e o node group teve seu desired/min ajustado de 1 para 2
+  # nós no infra-k8s para compensar.
+  minReplicas: 1
+  maxReplicas: 3
+
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
