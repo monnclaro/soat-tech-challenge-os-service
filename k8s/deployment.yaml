@@ -27,6 +27,10 @@ spec:
         app: soat-os-api
 
     spec:
+      # Este pod nunca chama a API do Kubernetes — desabilita o automount do token do
+      # service account (reduz a superfície de ataque caso o pod seja comprometido).
+      automountServiceAccountToken: false
+
       # Init container do New Relic — mesmo padrão do monolito de origem, ver
       # https://github.com/newrelic/newrelic-dotnet-init
       initContainers:
@@ -36,6 +40,15 @@ spec:
           volumeMounts:
             - mountPath: /newrelic-instrumentation
               name: newrelic-instrumentation
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+              ephemeral-storage: "64Mi"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+              ephemeral-storage: "128Mi"
 
       containers:
         - name: soat-os-api
@@ -76,10 +89,12 @@ spec:
             requests:
               memory: "192Mi"
               cpu: "150m"
+              ephemeral-storage: "256Mi"
 
             limits:
               memory: "384Mi"
               cpu: "350m"
+              ephemeral-storage: "512Mi"
 
       volumes:
         - name: newrelic-instrumentation
