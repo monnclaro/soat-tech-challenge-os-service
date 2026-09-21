@@ -70,6 +70,8 @@ public static class DependencyInjection
             x.AddConsumer<PagamentoAprovadoConsumer>();
             x.AddConsumer<PagamentoRecusadoConsumer>();
             x.AddConsumer<ExecucaoFinalizadaConsumer>();
+            x.AddConsumer<OrcamentoFalhouConsumer>();
+            x.AddConsumer<ExecucaoFalhouConsumer>();
 
             x.UsingRabbitMq((context, cfg) =>
             {

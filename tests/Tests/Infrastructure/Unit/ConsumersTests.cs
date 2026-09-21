@@ -198,4 +198,64 @@ public class ConsumersTests
 
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
+
+    [Fact]
+    public async Task OrcamentoFalhouConsumer_QuandoOsExiste_Cancela()
+    {
+        var os = CriarOrdemServicoRecebida();
+        var gateway = new Mock<IOrdemServicoGateway>();
+        gateway.Setup(g => g.BuscarPorId(os.Id, It.IsAny<CancellationToken>())).ReturnsAsync(os);
+
+        var consumer = new OrcamentoFalhouConsumer(gateway.Object);
+        var context = CriarContexto(new OrcamentoFalhou(os.Id, "Mercado Pago indisponível"));
+
+        await consumer.Consume(context.Object);
+
+        os.Status.Should().Be(Domain.OrdensServico.Enums.StatusOrdemServico.Cancelada);
+        gateway.Verify(g => g.Atualizar(os, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task OrcamentoFalhouConsumer_QuandoOsNaoExiste_LancaExcecao()
+    {
+        var gateway = new Mock<IOrdemServicoGateway>();
+        gateway.Setup(g => g.BuscarPorId(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((OrdemServico?)null);
+
+        var consumer = new OrcamentoFalhouConsumer(gateway.Object);
+        var context = CriarContexto(new OrcamentoFalhou(Guid.NewGuid(), "Mercado Pago indisponível"));
+
+        var act = () => consumer.Consume(context.Object);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task ExecucaoFalhouConsumer_QuandoOsExiste_Cancela()
+    {
+        var os = CriarOrdemServicoRecebida();
+        var gateway = new Mock<IOrdemServicoGateway>();
+        gateway.Setup(g => g.BuscarPorId(os.Id, It.IsAny<CancellationToken>())).ReturnsAsync(os);
+
+        var consumer = new ExecucaoFalhouConsumer(gateway.Object);
+        var context = CriarContexto(new ExecucaoFalhou(os.Id, "Peça indisponível"));
+
+        await consumer.Consume(context.Object);
+
+        os.Status.Should().Be(Domain.OrdensServico.Enums.StatusOrdemServico.Cancelada);
+        gateway.Verify(g => g.Atualizar(os, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecucaoFalhouConsumer_QuandoOsNaoExiste_LancaExcecao()
+    {
+        var gateway = new Mock<IOrdemServicoGateway>();
+        gateway.Setup(g => g.BuscarPorId(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((OrdemServico?)null);
+
+        var consumer = new ExecucaoFalhouConsumer(gateway.Object);
+        var context = CriarContexto(new ExecucaoFalhou(Guid.NewGuid(), "Peça indisponível"));
+
+        var act = () => consumer.Consume(context.Object);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
 }

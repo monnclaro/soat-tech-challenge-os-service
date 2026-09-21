@@ -23,14 +23,25 @@ A orquestração acontece assim:
 1. Os **use cases existentes** (`InserirOrdemServicoUseCase`, `RegistrarDiagnosticoUseCase`, `AprovarPagamentoUseCase`, etc.) continuam sendo a única fonte de verdade da regra de negócio — chamados tanto por controllers REST quanto por consumers de mensageria.
 2. Ao mudar de estado, o agregado levanta **domain events** (`OrdemServicoAbertaDomainEvent`, `DiagnosticoRegistradoDomainEvent`, `OrdemServicoStatusAlteradoDomainEvent`, ...).
 3. **Handlers de domain event** (`src/Application/OrdensServico/EventHandlers/*`) reagem a esses eventos publicando os **comandos da saga** (`IniciarDiagnostico`, `GerarOrcamento`, `IniciarExecucao`) via `ISagaCommandBus` (implementado com MassTransit/RabbitMQ).
-4. Os outros 2 serviços reagem a esses comandos e publicam **eventos da saga** de volta (`DiagnosticoFinalizado`/`DiagnosticoFalhou`, `OrcamentoGerado`, `PagamentoAprovado`/`PagamentoRecusado`, `ExecucaoFinalizada`).
+4. Os outros 2 serviços reagem a esses comandos e publicam **eventos da saga** de volta (`DiagnosticoFinalizado`/`DiagnosticoFalhou`, `OrcamentoGerado`/`OrcamentoFalhou`, `PagamentoAprovado`/`PagamentoRecusado`, `ExecucaoFinalizada`/`ExecucaoFalhou`).
 5. **Consumers MassTransit** (`src/Infrastructure/Messaging/Consumers/*`) traduzem esses eventos recebidos diretamente em chamadas aos use cases já existentes — nenhuma lógica de negócio duplicada entre a via REST e a via mensageria.
 
 Os contratos de mensagem (`src/Application/Messaging/Contracts/SagaContracts.cs`) marcam explicitamente cada tipo com `ISagaCommand` ou `ISagaEvent` — interfaces vazias, sem efeito em runtime, cujo único propósito é deixar a intenção de cada mensagem explícita no próprio tipo (comando imperativo vs. evento já ocorrido), em vez de depender só de convenção de nome ou comentário.
 
 ### Compensação (rollback)
 
-`PagamentoRecusado` é o caminho de compensação: o OS Service reage cancelando a OS (`CancelarUseCase`, `Status = Cancelada`) em vez de avançar para `IniciarExecucao`. Não há necessidade de desfazer nada no Execução Service (o diagnóstico já registrado continua válido como histórico) nem no Billing Service (o `Pagamento`/`Orcamento` ficam com `Status = Recusado`/`Reprovado`, não são apagados) — a compensação é **avançar a OS para um estado terminal de cancelamento**, não literalmente reverter dados dos outros serviços.
+Todo passo de negócio da saga tem um caminho de compensação — não só o de pagamento recusado:
+
+| Evento recebido | Origem | Quando acontece |
+|---|---|---|
+| `DiagnosticoFalhou` | Execução Service | Veículo não atendível, ainda na fase de diagnóstico (`Cancelar(motivo)` chamado enquanto `AguardandoDiagnostico`/`EmDiagnostico`) |
+| `OrcamentoFalhou` | Billing Service | A chamada ao Mercado Pago para gerar a preferência de pagamento lança exceção (rede, API fora do ar, credenciais inválidas) |
+| `PagamentoRecusado` | Billing Service | Webhook do Mercado Pago confirma que o pagamento foi recusado |
+| `ExecucaoFalhou` | Execução Service | Falha depois do diagnóstico já finalizado (ex.: peça indisponível) — `Cancelar(motivo)` chamado em `DiagnosticoFinalizado`/`EmExecucao` |
+
+Em todos os 4 casos, o OS Service reage do mesmo jeito: `CancelarUseCase` transiciona a OS para `Status = Cancelada` (via `OrcamentoFalhouConsumer`/`DiagnosticoFalhouConsumer`/`PagamentoRecusadoConsumer`/`ExecucaoFalhouConsumer`, cada um só um adaptador fino chamando o mesmo use case). Não há necessidade de desfazer nada nos outros dois serviços — o Orçamento/Pagamento e o diagnóstico já registrados continuam válidos como histórico, com seus próprios status refletindo o que aconteceu (`Reprovado`/`Recusado`/`Cancelada`, conforme o caso). A compensação é **avançar a OS para um estado terminal de cancelamento**, não literalmente reverter dados dos outros serviços.
+
+`OrcamentoFalhou` e `ExecucaoFalhou` cobrem falhas de negócio explícitas nesses dois serviços; falhas de infraestrutura/mensageria (mensagem "envenenada", broker indisponível) ainda dependem só do comportamento padrão do MassTransit (retry + fila de erro), sem uma reação automática da saga — está fora do escopo desta ADR.
 
 ## Alternativas consideradas
 
