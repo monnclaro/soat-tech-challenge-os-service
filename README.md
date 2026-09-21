@@ -1,8 +1,7 @@
 # SOAT — OS Service
 
-[![CI/CD](https://github.com/monnclaro/soat-tech-challenge-os-service/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/monnclaro/soat-tech-challenge-os-service/actions/workflows/ci-cd.yml)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=soat-tech-challenge-os-service&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=soat-tech-challenge-os-service)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=soat-tech-challenge-os-service&metric=coverage)](https://sonarcloud.io/summary/new_code?id=soat-tech-challenge-os-service)
+[![Quality gate status](https://sonarcloud.io/api/project_badges/measure?project=soat-tech-challenge-os-service&metric=alert_status&token=b51d0baff88e97c630f1490cf09ef5f12f1c5c3d)](https://sonarcloud.io/summary/new_code?id=soat-tech-challenge-os-service)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=soat-tech-challenge-os-service&metric=coverage&token=b51d0baff88e97c630f1490cf09ef5f12f1c5c3d)](https://sonarcloud.io/summary/new_code?id=soat-tech-challenge-os-service)
 
 Microsserviço responsável pela **Ordem de Serviço (OS)** dentro da arquitetura de microsserviços da Fase 4 do Tech Challenge (FIAP). Extraído do monolito [`soat-tech-challenge`](https://github.com/monnclaro/soat-tech-challenge), que permanece como referência histórica das Fases 1-3.
 
