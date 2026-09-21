@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: soat-os-api-service
+  namespace: soat-os
+
+spec:
+  selector:
+    app: soat-os-api
+
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+      nodePort: 30081
+
+  # NodePort, não ALB: mesma decisão de custo do monolito de origem (ver ADR "Prioridade
+  # de custo e AWS Academy" em soat-tech-challenge/docs/adr). Cada microsserviço recebe um
+  # NodePort fixo próprio (30081/30082/30083) — o repositório lambda (API Gateway) ganha
+  # uma rota/integração por serviço, cada uma apontando para o NodePort correspondente,
+  # extensão mínima do padrão de proxy único já usado na Fase 3.
+  type: NodePort

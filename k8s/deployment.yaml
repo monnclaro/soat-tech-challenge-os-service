@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: soat-os-api
+  namespace: soat-os
+
+spec:
+  replicas: 1
+
+  # Node t3.small (custo mínimo — ver ADR 0008 do monolito de origem) não tem folga de
+  # memória/pods para um pod extra temporário durante rollout, e agora com 3
+  # microsserviços disputando o mesmo cluster essa folga é ainda menor. maxSurge: 0 troca
+  # o único pod existente em vez de tentar subir um novo antes.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+
+  selector:
+    matchLabels:
+      app: soat-os-api
+
+  template:
+    metadata:
+      labels:
+        app: soat-os-api
+
+    spec:
+      # Init container do New Relic — mesmo padrão do monolito de origem, ver
+      # https://github.com/newrelic/newrelic-dotnet-init
+      initContainers:
+        - name: newrelic-instrumentation
+          image: newrelic/newrelic-dotnet-init:latest
+          command: ["cp", "-r", "/instrumentation/.", "/newrelic-instrumentation/"]
+          volumeMounts:
+            - mountPath: /newrelic-instrumentation
+              name: newrelic-instrumentation
+
+      containers:
+        - name: soat-os-api
+
+          # Substituído pelo CI/CD (envsubst) com a tag da imagem publicada no ECR.
+          image: ${ECR_IMAGE}
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - containerPort: 8080
+
+          envFrom:
+            - configMapRef:
+                name: soat-os-api-config
+
+            - secretRef:
+                name: soat-os-api-secret
+
+          volumeMounts:
+            - mountPath: /newrelic-instrumentation
+              name: newrelic-instrumentation
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+
+          resources:
+            requests:
+              memory: "192Mi"
+              cpu: "150m"
+
+            limits:
+              memory: "384Mi"
+              cpu: "350m"
+
+      volumes:
+        - name: newrelic-instrumentation
+          emptyDir: {}
