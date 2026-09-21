@@ -1,12 +1,16 @@
 # SOAT — OS Service
 
+[![CI/CD](https://github.com/monnclaro/soat-tech-challenge-os-service/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/monnclaro/soat-tech-challenge-os-service/actions/workflows/ci-cd.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=soat-tech-challenge-os-service&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=soat-tech-challenge-os-service)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=soat-tech-challenge-os-service&metric=coverage)](https://sonarcloud.io/summary/new_code?id=soat-tech-challenge-os-service)
+
 Microsserviço responsável pela **Ordem de Serviço (OS)** dentro da arquitetura de microsserviços da Fase 4 do Tech Challenge (FIAP). Extraído do monolito [`soat-tech-challenge`](https://github.com/monnclaro/soat-tech-challenge), que permanece como referência histórica das Fases 1-3.
 
 ## Responsabilidades
 
 - Abertura de Ordem de Serviço.
 - Consulta de status e histórico.
-- **Orquestração da saga** (abrir OS → diagnóstico → orçamento → aprovação de pagamento → execução → finalização), coordenando o [Billing Service](https://github.com/monnclaro/soat-tech-challenge-billing-service) e o [Execution Service](https://github.com/monnclaro/soat-tech-challenge-execution-service) via RabbitMQ/MassTransit — orquestração feita por reação a domain events (não um saga state machine separado): o próprio agregado `OrdemServico` guarda o estado da saga, handlers de domain event publicam os comandos (`IniciarDiagnostico`, `GerarOrcamento`, `IniciarExecucao`) e consumers MassTransit traduzem os eventos recebidos (`DiagnosticoFinalizado`, `DiagnosticoFalhou`, `PagamentoAprovado`, `PagamentoRecusado`, `ExecucaoFinalizada`) diretamente para os use cases já existentes.
+- **Orquestração da saga** (abrir OS → diagnóstico → orçamento → aprovação de pagamento → execução → finalização), coordenando o [Billing Service](https://github.com/monnclaro/soat-tech-challenge-billing-service) e o [Execution Service](https://github.com/monnclaro/soat-tech-challenge-execution-service) via RabbitMQ/MassTransit — orquestração feita por reação a domain events (não um saga state machine separado): o próprio agregado `OrdemServico` guarda o estado da saga, handlers de domain event publicam os comandos (`IniciarDiagnostico`, `GerarOrcamento`, `IniciarExecucao`) e consumers MassTransit traduzem os eventos recebidos (`DiagnosticoFinalizado`, `DiagnosticoFalhou`, `OrcamentoFalhou`, `PagamentoAprovado`, `PagamentoRecusado`, `ExecucaoFinalizada`, `ExecucaoFalhou`) diretamente para os use cases já existentes.
 - Cadastro de Clientes, Veículos, Produtos e Serviços (catálogo) — mantido aqui por ser o "dono" do agregado raiz `OrdemServico` e o autenticador do back-office.
 
 ## Papel na saga (orquestrador)
@@ -16,13 +20,13 @@ Este serviço é o **orquestrador da saga**, mas sem um saga state machine separ
 | Passo | Mensagem publicada por este serviço | Consumida por | Reação deste serviço ao evento de volta |
 |---|---|---|---|
 | 1 | `IniciarDiagnostico` (comando) | Execução Service | — |
-| 2 | — | — | `DiagnosticoFinalizado`/`DiagnosticoFalhou` → registra o diagnóstico e publica `GerarOrcamento` |
+| 2 | — | — | `DiagnosticoFinalizado` → registra o diagnóstico e publica `GerarOrcamento`; **`DiagnosticoFalhou` → cancela a OS (compensação)** |
 | 3 | `GerarOrcamento` (comando) | Billing Service | — |
-| 4 | — | — | `PagamentoAprovado` → publica `IniciarExecucao`; `PagamentoRecusado` → cancela a OS (compensação) |
+| 4 | — | — | `PagamentoAprovado` → publica `IniciarExecucao`; **`OrcamentoFalhou`/`PagamentoRecusado` → cancela a OS (compensação)** |
 | 5 | `IniciarExecucao` (comando) | Execução Service | — |
-| 6 | — | — | `ExecucaoFinalizada` → finaliza a OS |
+| 6 | — | — | `ExecucaoFinalizada` → finaliza a OS; **`ExecucaoFalhou` → cancela a OS (compensação)** |
 
-Justificativa completa dessa escolha de design (por que não um saga state machine dedicado, como funciona a compensação): [ADR 0001](./docs/adr/0001-saga-orquestrada-sem-state-machine-separado.md).
+Cada evento de compensação (`DiagnosticoFalhou`, `OrcamentoFalhou`, `PagamentoRecusado`, `ExecucaoFalhou`) tem seu próprio consumer (`*Consumer.cs` em `src/Infrastructure/Messaging/Consumers/`), todos adaptadores finos que chamam o mesmo `CancelarUseCase` — nenhum precisa saber sobre os outros. Justificativa completa dessa escolha de design (por que não um saga state machine dedicado, tabela completa de compensação): [ADR 0001](./docs/adr/0001-saga-orquestrada-sem-state-machine-separado.md).
 
 ## Entidades principais
 
@@ -45,6 +49,8 @@ src/
 
 Regras de dependência entre camadas garantidas por testes de arquitetura (NetArchTest) em `tests/Tests/Camadas`.
 
+Documentação completa (diagramas de camadas, modelo de domínio, máquina de estados, sequência completa da saga com compensação, mensageria): [docs/architecture.md](./docs/architecture.md).
+
 ## Banco de dados
 
 PostgreSQL (`soat_os`) — instância compartilhada provisionada pelo repositório [`infra-database`](https://github.com/monnclaro/soat-tech-challenge-infra-database), banco lógico e usuário próprios e isolados (nenhum outro serviço acessa este banco diretamente).
@@ -65,9 +71,9 @@ Este é o **único serviço que emite tokens**: `POST /api/auth/login` valida as
 Contratos em `Soat.Contracts.Saga` (`src/Application/Messaging/Contracts/SagaContracts.cs`) — cópia idêntica mantida em cada um dos 3 repositórios (sem pacote NuGet compartilhado, para evitar a complexidade de um feed privado nesta fase do projeto). Fluxo:
 
 1. Abrir OS → publica `IniciarDiagnostico` (consumido pelo Execução Service).
-2. Execução Service publica `DiagnosticoFinalizado` (ou `DiagnosticoFalhou`) → este serviço consome, registra o diagnóstico e publica `GerarOrcamento` (consumido pelo Billing Service).
-3. Billing Service publica `PagamentoAprovado`/`PagamentoRecusado` → este serviço consome e avança/cancela a OS; ao aprovar, publica `IniciarExecucao` (consumido pelo Execução Service).
-4. Execução Service publica `ExecucaoFinalizada` → este serviço consome e finaliza a OS.
+2. Execução Service publica `DiagnosticoFinalizado` → este serviço registra o diagnóstico e publica `GerarOrcamento` (consumido pelo Billing Service); ou publica `DiagnosticoFalhou` → este serviço cancela a OS (compensação).
+3. Billing Service publica `PagamentoAprovado` → este serviço publica `IniciarExecucao` (consumido pelo Execução Service); ou publica `OrcamentoFalhou`/`PagamentoRecusado` → este serviço cancela a OS (compensação).
+4. Execução Service publica `ExecucaoFinalizada` → este serviço finaliza a OS; ou publica `ExecucaoFalhou` → este serviço cancela a OS (compensação).
 
 **Verificado de ponta a ponta com infraestrutura real** (RabbitMQ + PostgreSQL locais, sem mocks): um publisher standalone simulando Billing/Execução publicou `DiagnosticoFinalizado` → `PagamentoAprovado` → `ExecucaoFinalizada` na ordem, e a OS transitou corretamente `Recebida → EmDiagnostico → AguardandoAprovacao → EmExecucao → Finalizada → Entregue`, com histórico de status persistido a cada passo — confirmando o consumo real das mensagens (não apenas os testes unitários com mocks).
 
@@ -91,15 +97,32 @@ API em `http://localhost:8081`, documentação OpenAPI (Scalar) em `/scalar` (am
 
 Especificação OpenAPI (Swagger) exportada em [`docs/openapi.json`](./docs/openapi.json) — importável direto no Postman (File > Import) ou em qualquer ferramenta compatível com OpenAPI 3. Com a API rodando localmente, a versão sempre atualizada também fica disponível em `/openapi/v1.json`.
 
-## Testes
+## Testes e cobertura
 
 ```bash
 dotnet test
 ```
 
-193/193 testes passando (unit + arquitetura + BDD). Cobertura de linha em ~91%, com gate de 80% no CI (ver abaixo).
-
 BDD (Reqnroll) do fluxo completo da saga em [`tests/Tests/Features/SagaOrdemServico.feature`](tests/Tests/Features/SagaOrdemServico.feature) — cenário feliz (`Recebida → ... → Finalizada`) e caminho de compensação (pagamento recusado → `Cancelada`).
+
+### Evidência de cobertura
+
+**197/197 testes passando** (unit + arquitetura + BDD), gerado localmente com Coverlet
+(`dotnet test -p:CollectCoverage=true -p:CoverletOutputFormat=opencover`):
+
+| Módulo | Linha | Branch | Método |
+|---|---|---|---|
+| Api | 91,97% | 100% | 90,38% |
+| Application | 98,15% | 100% | 94,09% |
+| Domain | 93,71% | 76,27% | 98,38% |
+| Infrastructure | 76,54% | 70,58% | 90,62% |
+| SharedKernel | 55,55% | 100% | 55,55% |
+| **Total** | **91,21%** | **84,61%** | **92,81%** |
+
+Cobertura contínua (atualizada a cada push em `main`) nos badges no topo deste README
+e no [dashboard do SonarCloud](https://sonarcloud.io/summary/new_code?id=soat-tech-challenge-os-service)
+— o Quality Gate falha o CI se a cobertura de código novo cair, além do gate fixo de
+80% aplicado pelo Coverlet (ver "CI/CD" abaixo).
 
 ## CI/CD
 
