@@ -14,8 +14,11 @@ public class OsServiceDbContextFactory : IDesignTimeDbContextFactory<OsServiceDb
 {
     public OsServiceDbContext CreateDbContext(string[] args)
     {
+        // NOSONAR: não é uma credencial real — só o Postgres local de desenvolvimento
+        // (mesmo valor do compose.yaml/.env.example), usado apenas por ferramentas de
+        // design-time ("dotnet ef migrations add"), nunca em runtime do serviço.
         var options = new DbContextOptionsBuilder<OsServiceDbContext>()
-            .UseNpgsql("Host=localhost;Database=soat_os;Username=postgres;Password=postgres")
+            .UseNpgsql("Host=localhost;Database=soat_os;Username=postgres;Password=postgres") // NOSONAR
             .Options;
 
         return new OsServiceDbContext(options, new NoopDomainEventsDispatcher());
