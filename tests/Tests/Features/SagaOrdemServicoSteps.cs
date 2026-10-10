@@ -3,7 +3,6 @@ using Application.OrdensServico.EventHandlers;
 using Application.OrdensServico.UseCases.AprovarPagamento;
 using Application.OrdensServico.UseCases.Cancelar;
 using Application.OrdensServico.UseCases.Finalizar;
-using Application.OrdensServico.UseCases.IniciarDiagnostico;
 using Application.OrdensServico.UseCases.Inserir;
 using Application.OrdensServico.UseCases.RegistrarDiagnostico;
 using Domain.Clientes;
@@ -180,7 +179,9 @@ public class SagaOrdemServicoSteps
         await useCase.Execute(new InserirOrdemServicoInput(cliente.Id, veiculo.Id));
 
         _idOrdemServico.Should().NotBeEmpty();
-        (await BuscarOrdemServico()).Status.Should().Be(Domain.OrdensServico.Enums.StatusOrdemServico.Recebida);
+        // A própria abertura da OS já a deixa em EmDiagnostico — o comando pro
+        // Execução Service sai no mesmo instante (ver InserirOrdemServicoUseCase).
+        (await BuscarOrdemServico()).Status.Should().Be(Domain.OrdensServico.Enums.StatusOrdemServico.EmDiagnostico);
 
         // A abertura da OS já deve ter disparado (via domain event) o comando
         // que notifica o Execução Service a começar o diagnóstico.
@@ -190,14 +191,6 @@ public class SagaOrdemServicoSteps
     [When(@"o diagnóstico é registrado com serviços e produtos")]
     public async Task QuandoODiagnosticoERegistradoComServicosEProdutos()
     {
-        // Passo 2 da saga (hoje manual — ver comentário em IniciarDiagnosticoUseCase):
-        // o OS Service marca a OS como "em diagnóstico" enquanto aguarda o
-        // Execução Service.
-        var iniciarOutputPort = new Mock<IIniciarDiagnosticoOutputPort>();
-        var iniciarUseCase = new IniciarDiagnosticoUseCase(_gateway, iniciarOutputPort.Object);
-        await iniciarUseCase.Execute(new IniciarDiagnosticoInput(_idOrdemServico));
-        iniciarOutputPort.Verify(p => p.Ok(), Times.Once);
-
         // Simula o evento "DiagnosticoFinalizado" publicado pelo Execução Service,
         // consumido pelo consumer MassTransit real (sem broker de verdade).
         var consumer = new DiagnosticoFinalizadoConsumer(_gateway);

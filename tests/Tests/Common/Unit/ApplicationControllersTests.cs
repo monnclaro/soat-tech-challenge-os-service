@@ -14,16 +14,12 @@ using Application.Login.UseCases;
 using Application.Login.UseCases.DTOs;
 using Application.Login.UseCases.Interfaces;
 using Application.OrdensServico.Controllers;
-using Application.OrdensServico.UseCases.AprovarPagamento;
 using Application.OrdensServico.UseCases.BuscarHistorico;
 using Application.OrdensServico.UseCases.BuscarListaPaginadaPorDocumento;
 using Application.OrdensServico.UseCases.BuscarOrdemServico;
 using Application.OrdensServico.UseCases.Cancelar;
 using Application.OrdensServico.UseCases.Entregar;
-using Application.OrdensServico.UseCases.Finalizar;
-using Application.OrdensServico.UseCases.IniciarDiagnostico;
 using Application.OrdensServico.UseCases.Inserir;
-using Application.OrdensServico.UseCases.RegistrarDiagnostico;
 using Application.OrdensServico.UseCases.Remover;
 using Application.Produtos.Controllers;
 using Application.Produtos.UseCases.AtualizarProduto;
@@ -167,11 +163,7 @@ public class ApplicationControllersTests
             new BuscarListaPaginadaPorDocumentoUseCase(gateway.Object, Mock.Of<IClienteGateway>(), Mock.Of<IVeiculoGateway>(), Mock.Of<IBuscarListaPaginadaPorDocumentoOutputPort>()),
             new BuscarHistoricoUseCase(gateway.Object, Mock.Of<Domain.OrdensServico.Historico.Gateways.IHistoricoStatusOrdemServicoGateway>(), Mock.Of<IBuscarHistoricoOutputPort>()),
             new InserirOrdemServicoUseCase(gateway.Object, Mock.Of<IClienteGateway>(), Mock.Of<IInserirOrdemServicoOutputPort>()),
-            new IniciarDiagnosticoUseCase(gateway.Object, Mock.Of<IIniciarDiagnosticoOutputPort>()),
-            new RegistrarDiagnosticoUseCase(gateway.Object, Mock.Of<IRegistrarDiagnosticoOutputPort>()),
-            new AprovarPagamentoUseCase(gateway.Object, Mock.Of<IAprovarPagamentoOutputPort>()),
             new CancelarUseCase(gateway.Object, Mock.Of<ICancelarOutputPort>()),
-            new FinalizarUseCase(gateway.Object, Mock.Of<IFinalizarOutputPort>()),
             new EntregarUseCase(gateway.Object, Mock.Of<IEntregarOutputPort>()),
             new RemoverOrdemServicoUseCase(gateway.Object, Mock.Of<IRemoverOrdemServicoOutputPort>()));
 
@@ -181,11 +173,7 @@ public class ApplicationControllersTests
         await controller.BuscarListaPaginadaPorDocumento(new BuscarListaPaginadaPorDocumentoInput("12345678909", new PagedRequest(1, 10), "99988877766"));
         await controller.BuscarHistorico(new BuscarHistoricoInput(Guid.NewGuid()));
         await controller.Inserir(new InserirOrdemServicoInput(Guid.NewGuid(), Guid.NewGuid()));
-        await controller.IniciarDiagnostico(new IniciarDiagnosticoInput(Guid.NewGuid()));
-        await controller.RegistrarDiagnostico(new RegistrarDiagnosticoInput(Guid.NewGuid(), [], []));
-        await controller.AprovarPagamento(new AprovarPagamentoInput(Guid.NewGuid()));
         await controller.Cancelar(new CancelarInput(Guid.NewGuid()));
-        await controller.Finalizar(new FinalizarInput(Guid.NewGuid()));
         await controller.Entregar(new EntregarInput(Guid.NewGuid()));
         await controller.Remover(new RemoverOrdemServicoInput(Guid.NewGuid()));
     }
