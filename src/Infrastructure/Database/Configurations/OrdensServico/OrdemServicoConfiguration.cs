@@ -21,6 +21,7 @@ public class OrdemServicoConfiguration : IEntityTypeConfiguration<OrdemServico>
         builder.Property(x => x.DataFinalizacao).HasColumnName("data_finalizacao");
         builder.Property(x => x.Status).HasColumnName("status").IsRequired();
         builder.Property(x => x.ValorTotal).HasColumnName("valor_total").HasColumnType("decimal(10,2)").IsRequired();
+        builder.Property(x => x.LinkPagamento).HasColumnName("link_pagamento").HasMaxLength(500);
 
         builder.HasMany(x => x.Servicos)
             .WithOne()

@@ -178,7 +178,7 @@ public class PresentersTests
         var clienteOutput = new OrdemServicoClienteOutput(Guid.NewGuid(), "João Silva", "12345678909");
         var veiculoOutput = new OrdemServicoVeiculoOutput(Guid.NewGuid(), "ABC1234", "Toyota", "Corolla", 2020);
         var osOutput = new OrdemServicoOutput(
-            Guid.NewGuid(), clienteOutput, veiculoOutput, DateTime.UtcNow, null, null, "Recebida", 0m, [], []);
+            Guid.NewGuid(), clienteOutput, veiculoOutput, DateTime.UtcNow, null, null, "Recebida", 0m, null, [], []);
         var osPorDocumentoOutput = new OrdemServicoPorDocumentoOutput(
             Guid.NewGuid(), "Recebida",
             new OrdemServicoClientePorDocumentoOutput("João Silva", "12345678909"),
