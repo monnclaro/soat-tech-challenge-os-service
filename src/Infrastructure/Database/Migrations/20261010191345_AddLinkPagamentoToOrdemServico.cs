@@ -1,10 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System.Diagnostics.CodeAnalysis;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace Infrastructure.Database.Migrations
 {
     /// <inheritdoc />
+    [ExcludeFromCodeCoverage] // Migration auto-gerada pelo EF Core ("dotnet ef migrations add") — sem lógica de negócio.
     public partial class AddLinkPagamentoToOrdemServico : Migration
     {
         /// <inheritdoc />
