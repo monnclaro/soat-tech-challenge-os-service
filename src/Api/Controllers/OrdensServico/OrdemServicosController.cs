@@ -4,17 +4,13 @@ using Api.Controllers.OrdensServico.Requests;
 using Api.Presenters.OrdensServico;
 using Application.OrdensServico.Controllers;
 using Application.OrdensServico.UseCases;
-using Application.OrdensServico.UseCases.AprovarPagamento;
 using Application.OrdensServico.UseCases.BuscarHistorico;
 using Application.OrdensServico.UseCases.BuscarListaPaginada;
 using Application.OrdensServico.UseCases.BuscarListaPaginadaPorDocumento;
 using Application.OrdensServico.UseCases.BuscarOrdemServico;
 using Application.OrdensServico.UseCases.Cancelar;
 using Application.OrdensServico.UseCases.Entregar;
-using Application.OrdensServico.UseCases.Finalizar;
-using Application.OrdensServico.UseCases.IniciarDiagnostico;
 using Application.OrdensServico.UseCases.Inserir;
-using Application.OrdensServico.UseCases.RegistrarDiagnostico;
 using Application.OrdensServico.UseCases.Remover;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -37,11 +33,7 @@ public class OrdemServicosController : ControllerBase
     private readonly BuscarListaPaginadaPorDocumentoPresenter _listarPorDocumentoPresenter;
     private readonly BuscarHistoricoPresenter _historicoPresenter;
     private readonly InserirOrdemServicoPresenter _inserirPresenter;
-    private readonly IniciarDiagnosticoPresenter _iniciarDiagnosticoPresenter;
-    private readonly RegistrarDiagnosticoPresenter _registrarDiagnosticoPresenter;
-    private readonly AprovarPagamentoPresenter _aprovarPagamentoPresenter;
     private readonly CancelarPresenter _cancelarPresenter;
-    private readonly FinalizarPresenter _finalizarPresenter;
     private readonly EntregarPresenter _entregarPresenter;
     private readonly RemoverOrdemServicoPresenter _removerPresenter;
 
@@ -52,11 +44,7 @@ public class OrdemServicosController : ControllerBase
         BuscarListaPaginadaPorDocumentoPresenter listarPorDocumentoPresenter,
         BuscarHistoricoPresenter historicoPresenter,
         InserirOrdemServicoPresenter inserirPresenter,
-        IniciarDiagnosticoPresenter iniciarDiagnosticoPresenter,
-        RegistrarDiagnosticoPresenter registrarDiagnosticoPresenter,
-        AprovarPagamentoPresenter aprovarPagamentoPresenter,
         CancelarPresenter cancelarPresenter,
-        FinalizarPresenter finalizarPresenter,
         EntregarPresenter entregarPresenter,
         RemoverOrdemServicoPresenter removerPresenter)
     {
@@ -66,11 +54,7 @@ public class OrdemServicosController : ControllerBase
         _listarPorDocumentoPresenter = listarPorDocumentoPresenter;
         _historicoPresenter = historicoPresenter;
         _inserirPresenter = inserirPresenter;
-        _iniciarDiagnosticoPresenter = iniciarDiagnosticoPresenter;
-        _registrarDiagnosticoPresenter = registrarDiagnosticoPresenter;
-        _aprovarPagamentoPresenter = aprovarPagamentoPresenter;
         _cancelarPresenter = cancelarPresenter;
-        _finalizarPresenter = finalizarPresenter;
         _entregarPresenter = entregarPresenter;
         _removerPresenter = removerPresenter;
     }
@@ -124,46 +108,14 @@ public class OrdemServicosController : ControllerBase
         return _inserirPresenter.Result!;
     }
 
-    // A partir daqui: passos da saga hoje expostos como endpoints internos
-    // (Admin-only) para permitir testar o fluxo ponta a ponta antes da
-    // mensageria estar ligada. Cada um vira uma reação a um evento consumido
-    // via RabbitMQ/MassTransit em um PR futuro.
-
-    [HttpPatch("{id:guid}/iniciar-diagnostico")]
-    [Authorize(Roles = "Admin")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> IniciarDiagnostico([FromRoute] Guid id, CancellationToken ct)
-    {
-        await _controller.IniciarDiagnostico(new IniciarDiagnosticoInput(id), ct);
-        return _iniciarDiagnosticoPresenter.Result!;
-    }
-
-    [HttpPatch("{id:guid}/diagnostico")]
-    [Authorize(Roles = "Admin")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> RegistrarDiagnostico([FromRoute] Guid id, [FromBody] RegistrarDiagnosticoRequest request, CancellationToken ct)
-    {
-        await _controller.RegistrarDiagnostico(new RegistrarDiagnosticoInput(
-            id,
-            request.Servicos.Select(s => new RegistrarDiagnosticoServicoInput(s.IdServico, s.NomeServico, s.Valor)).ToList(),
-            request.Produtos.Select(p => new RegistrarDiagnosticoProdutoInput(p.IdProduto, p.NomeProduto, p.ValorUnitario, p.Quantidade)).ToList()), ct);
-
-        return _registrarDiagnosticoPresenter.Result!;
-    }
-
-    [HttpPatch("{id:guid}/pagamento/aprovacao")]
-    [Authorize(Roles = "Admin")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> AprovarPagamento([FromRoute] Guid id, CancellationToken ct)
-    {
-        await _controller.AprovarPagamento(new AprovarPagamentoInput(id), ct);
-        return _aprovarPagamentoPresenter.Result!;
-    }
+    // Os demais passos da saga (iniciar diagnóstico, registrar diagnóstico, aprovar
+    // pagamento, finalizar) não são mais expostos aqui — cada um já é disparado
+    // automaticamente pelos consumers RabbitMQ/MassTransit (ver
+    // Infrastructure/Messaging/Consumers) reagindo aos eventos publicados pelo
+    // Execução Service/Billing Service. Expor isso como endpoint HTTP permitia
+    // avançar a OS sem o outro microsserviço saber, dessincronizando os dois.
+    // Cancelamento e entrega continuam manuais: não existe gatilho automático pra
+    // nenhum dos dois (cancelamento voluntário do atendente / entrega ao cliente).
 
     [HttpPatch("{id:guid}/cancelamento")]
     [Authorize(Roles = "Admin")]
@@ -174,17 +126,6 @@ public class OrdemServicosController : ControllerBase
     {
         await _controller.Cancelar(new CancelarInput(id), ct);
         return _cancelarPresenter.Result!;
-    }
-
-    [HttpPatch("{id:guid}/finalizacao")]
-    [Authorize(Roles = "Admin")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Finalizar([FromRoute] Guid id, CancellationToken ct)
-    {
-        await _controller.Finalizar(new FinalizarInput(id), ct);
-        return _finalizarPresenter.Result!;
     }
 
     [HttpPatch("{id:guid}/entrega")]

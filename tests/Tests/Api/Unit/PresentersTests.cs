@@ -213,35 +213,11 @@ public class PresentersTests
         inserir.Ok(Guid.NewGuid());
         inserir.Result.Should().BeOfType<CreatedAtActionResult>();
 
-        var iniciarDiagnostico = new IniciarDiagnosticoPresenter();
-        iniciarDiagnostico.NaoEncontrado();
-        iniciarDiagnostico.Result.Should().BeOfType<NotFoundResult>();
-        iniciarDiagnostico.Ok();
-        iniciarDiagnostico.Result.Should().BeOfType<OkResult>();
-
-        var registrarDiagnostico = new RegistrarDiagnosticoPresenter();
-        registrarDiagnostico.NaoEncontrado();
-        registrarDiagnostico.Result.Should().BeOfType<NotFoundResult>();
-        registrarDiagnostico.Ok();
-        registrarDiagnostico.Result.Should().BeOfType<OkResult>();
-
-        var aprovarPagamento = new AprovarPagamentoPresenter();
-        aprovarPagamento.NaoEncontrado();
-        aprovarPagamento.Result.Should().BeOfType<NotFoundResult>();
-        aprovarPagamento.Ok();
-        aprovarPagamento.Result.Should().BeOfType<OkResult>();
-
         var cancelar = new CancelarPresenter();
         cancelar.NaoEncontrado();
         cancelar.Result.Should().BeOfType<NotFoundResult>();
         cancelar.Ok();
         cancelar.Result.Should().BeOfType<OkResult>();
-
-        var finalizar = new FinalizarPresenter();
-        finalizar.NaoEncontrado();
-        finalizar.Result.Should().BeOfType<NotFoundResult>();
-        finalizar.Ok();
-        finalizar.Result.Should().BeOfType<OkResult>();
 
         var entregar = new EntregarPresenter();
         entregar.NaoEncontrado();

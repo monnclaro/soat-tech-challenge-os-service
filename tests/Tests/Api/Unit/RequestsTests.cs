@@ -72,15 +72,6 @@ public class RequestsTests
         var inserir = new InserirOrdemServicoRequest(idCliente, idVeiculo);
         inserir.IdCliente.Should().Be(idCliente);
         inserir.IdVeiculo.Should().Be(idVeiculo);
-
-        var servicoItem = new RegistrarDiagnosticoServicoRequest(Guid.NewGuid(), "Troca de óleo", 120m);
-        var produtoItem = new RegistrarDiagnosticoProdutoRequest(Guid.NewGuid(), "Óleo 5W30", 79.90m, 2m);
-        var registrar = new RegistrarDiagnosticoRequest([servicoItem], [produtoItem]);
-
-        registrar.Servicos.Should().ContainSingle();
-        registrar.Produtos.Should().ContainSingle();
-        servicoItem.NomeServico.Should().Be("Troca de óleo");
-        produtoItem.Quantidade.Should().Be(2m);
     }
 
     [Fact]
