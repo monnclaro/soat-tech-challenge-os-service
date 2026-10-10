@@ -1,5 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using Application.Common.Interfaces;
+using Application.OrdensServico.UseCases.AprovarPagamento;
+using Application.OrdensServico.UseCases.Finalizar;
+using Application.OrdensServico.UseCases.RegistrarDiagnostico;
 using Application.OrdensServico.UseCases.RegistrarLinkPagamento;
 using Application.Produtos.UseCases.DecrementarEstoque;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +21,9 @@ public static class DependencyInjection
         // controller HTTP — por isso são registrados aqui, não descobertos por scan.
         services.AddScoped<IDecrementarEstoqueOutputPort, DecrementarEstoqueOutputPort>();
         services.AddScoped<IRegistrarLinkPagamentoOutputPort, RegistrarLinkPagamentoOutputPort>();
+        services.AddScoped<IRegistrarDiagnosticoOutputPort, RegistrarDiagnosticoOutputPort>();
+        services.AddScoped<IAprovarPagamentoOutputPort, AprovarPagamentoOutputPort>();
+        services.AddScoped<IFinalizarOutputPort, FinalizarOutputPort>();
 
         services.Scan(scan => scan
             .FromAssemblyOf<IUseCase>()

@@ -62,8 +62,7 @@ Este é o **único serviço que emite tokens**: `POST /api/auth/login` valida as
 
 - `POST /api/auth/login` — login do back-office (email/senha).
 - `api/v1/clientes`, `api/v1/clientes/{idCliente}/veiculos`, `api/v1/produtos`, `api/v1/servicos` — CRUD completo (catálogo), `[Authorize(Roles = "Admin")]`.
-- `api/v1/ordens-servico` — abertura, consulta (por id, paginada, paginada por documento do cliente), histórico de status, entrega e remoção.
-- `api/v1/ordens-servico/{id}/{iniciar-diagnostico,diagnostico,pagamento/aprovacao,cancelamento,finalizacao}` — os mesmos passos que os consumers RabbitMQ disparam automaticamente, também expostos como endpoints internos (Admin-only) para depuração/teste manual.
+- `api/v1/ordens-servico` — abertura, consulta (por id, paginada, paginada por documento do cliente), histórico de status, cancelamento, entrega e remoção. Diagnóstico, aprovação de pagamento e finalização não são mais expostos como endpoint HTTP — só acontecem via os consumers RabbitMQ (ver seção de mensageria), pra não dessincronizar este serviço do Execução Service/Billing Service.
 
 ## Mensageria (RabbitMQ/MassTransit)
 
