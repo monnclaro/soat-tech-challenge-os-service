@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Application.Common.Interfaces;
+using Application.OrdensServico.UseCases.RegistrarLinkPagamento;
 using Application.Produtos.UseCases.DecrementarEstoque;
 using Microsoft.Extensions.DependencyInjection;
 using SharedKernel.Interfaces;
@@ -12,10 +13,11 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        // Único output port sem Presenter na camada Api: DecrementarEstoqueUseCase só é
-        // chamado internamente por OrdemServicoEventHandler (reação a domain event), nunca
-        // por um controller HTTP — por isso é registrado aqui, não descoberto por scan.
+        // Output ports sem Presenter na camada Api: esses use cases só são chamados
+        // internamente (domain event handler / consumer RabbitMQ), nunca por um
+        // controller HTTP — por isso são registrados aqui, não descobertos por scan.
         services.AddScoped<IDecrementarEstoqueOutputPort, DecrementarEstoqueOutputPort>();
+        services.AddScoped<IRegistrarLinkPagamentoOutputPort, RegistrarLinkPagamentoOutputPort>();
 
         services.Scan(scan => scan
             .FromAssemblyOf<IUseCase>()
