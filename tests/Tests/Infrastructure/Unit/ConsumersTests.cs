@@ -106,6 +106,40 @@ public class ConsumersTests
     }
 
     [Fact]
+    public async Task OrcamentoGeradoConsumer_QuandoOsExiste_RegistraLinkPagamento()
+    {
+        var os = CriarOrdemServicoRecebida();
+        os.IniciarDiagnostico();
+        os.RegistrarDiagnostico([new OrdemServicoServico(os.Id, Guid.NewGuid(), "Troca de óleo", 120m)], []);
+
+        var gateway = new Mock<IOrdemServicoGateway>();
+        gateway.Setup(g => g.BuscarPorId(os.Id, It.IsAny<CancellationToken>())).ReturnsAsync(os);
+
+        var consumer = new OrcamentoGeradoConsumer(gateway.Object);
+        var evento = new OrcamentoGerado(os.Id, Guid.NewGuid(), 120m, "https://mercadopago.com/checkout/preference-123");
+        var context = CriarContexto(evento);
+
+        await consumer.Consume(context.Object);
+
+        os.LinkPagamento.Should().Be("https://mercadopago.com/checkout/preference-123");
+        gateway.Verify(g => g.Atualizar(os, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task OrcamentoGeradoConsumer_QuandoOsNaoExiste_LancaExcecao()
+    {
+        var gateway = new Mock<IOrdemServicoGateway>();
+        gateway.Setup(g => g.BuscarPorId(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((OrdemServico?)null);
+
+        var consumer = new OrcamentoGeradoConsumer(gateway.Object);
+        var context = CriarContexto(new OrcamentoGerado(Guid.NewGuid(), Guid.NewGuid(), 120m, "https://mercadopago.com/checkout/preference-123"));
+
+        var act = () => consumer.Consume(context.Object);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
     public async Task ExecucaoFinalizadaConsumer_QuandoOsExiste_Finaliza()
     {
         var os = CriarOrdemServicoRecebida();
