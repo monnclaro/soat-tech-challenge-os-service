@@ -40,6 +40,36 @@ public class ConsumersTests
     }
 
     [Fact]
+    public async Task DiagnosticoIniciadoConsumer_QuandoOsExiste_IniciaDiagnostico()
+    {
+        var os = CriarOrdemServicoRecebida();
+        var gateway = new Mock<IOrdemServicoGateway>();
+        gateway.Setup(g => g.BuscarPorId(os.Id, It.IsAny<CancellationToken>())).ReturnsAsync(os);
+
+        var consumer = new DiagnosticoIniciadoConsumer(gateway.Object);
+        var context = CriarContexto(new DiagnosticoIniciado(os.Id));
+
+        await consumer.Consume(context.Object);
+
+        os.Status.Should().Be(Domain.OrdensServico.Enums.StatusOrdemServico.EmDiagnostico);
+        gateway.Verify(g => g.Atualizar(os, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DiagnosticoIniciadoConsumer_QuandoOsNaoExiste_LancaExcecao()
+    {
+        var gateway = new Mock<IOrdemServicoGateway>();
+        gateway.Setup(g => g.BuscarPorId(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((OrdemServico?)null);
+
+        var consumer = new DiagnosticoIniciadoConsumer(gateway.Object);
+        var context = CriarContexto(new DiagnosticoIniciado(Guid.NewGuid()));
+
+        var act = () => consumer.Consume(context.Object);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
     public async Task DiagnosticoFalhouConsumer_QuandoOsExiste_Cancela()
     {
         var os = CriarOrdemServicoRecebida();

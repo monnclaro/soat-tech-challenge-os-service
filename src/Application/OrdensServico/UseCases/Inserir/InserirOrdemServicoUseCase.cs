@@ -5,13 +5,14 @@ using Domain.OrdensServico.Gateways;
 
 namespace Application.OrdensServico.UseCases.Inserir;
 
-// Abertura da OS: só cabeçalho (cliente + veículo). O diagnóstico (que
-// identifica os serviços/produtos necessários) passou a ser responsabilidade
-// do Execução Service, disparado de forma assíncrona a partir daqui
-// (EnviarIniciarDiagnosticoHandler, reagindo a OrdemServicoAbertaDomainEvent).
-// Como esse comando já sai no mesmo instante, a própria OS já nasce em
-// EmDiagnostico — não existe mais um estágio "Recebida" separado esperando
-// um gatilho manual.
+// Abertura da OS: só cabeçalho (cliente + veículo), status Recebida. O
+// diagnóstico (que identifica os serviços/produtos necessários) passou a ser
+// responsabilidade do Execução Service, comandado de forma assíncrona a
+// partir daqui (EnviarIniciarDiagnosticoHandler, reagindo a
+// OrdemServicoAbertaDomainEvent) — mas a OS só avança para EmDiagnostico
+// quando o Execução Service confirma de volta (evento DiagnosticoIniciado,
+// ver DiagnosticoIniciadoConsumer), nunca de forma otimista aqui. Mesmo
+// padrão reativo usado em todas as outras transições da saga.
 public class InserirOrdemServicoUseCase : IUseCase
 {
     private readonly IOrdemServicoGateway _gateway;
@@ -41,7 +42,6 @@ public class InserirOrdemServicoUseCase : IUseCase
 
         var ordemServico = new OrdemServico();
         ordemServico.Inserir(input.IdCliente, input.IdVeiculo);
-        ordemServico.IniciarDiagnostico();
 
         await _gateway.Salvar(ordemServico, ct);
         _outputPort.Ok(ordemServico.Id);
