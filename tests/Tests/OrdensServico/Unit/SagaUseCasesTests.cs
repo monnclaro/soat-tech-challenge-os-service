@@ -1,6 +1,7 @@
 using Application.OrdensServico.UseCases.AprovarPagamento;
 using Application.OrdensServico.UseCases.Cancelar;
 using Application.OrdensServico.UseCases.Finalizar;
+using Application.OrdensServico.UseCases.IniciarDiagnostico;
 using Application.OrdensServico.UseCases.Inserir;
 using Application.OrdensServico.UseCases.RegistrarDiagnostico;
 using Application.OrdensServico.UseCases.RegistrarLinkPagamento;
@@ -15,8 +16,8 @@ using Moq;
 
 namespace Tests.OrdensServico.Unit;
 
-// Testa os use cases que hoje expõem, como endpoints internos, cada passo da
-// saga (a serem substituídos por consumers RabbitMQ/MassTransit).
+// Testa os use cases de cada passo da saga, chamados pelos consumers
+// RabbitMQ/MassTransit (Infrastructure.Messaging.Consumers).
 public class SagaUseCasesTests
 {
     private static OrdemServico CriarOrdemServico(Action<OrdemServico>? preparar = null)
@@ -81,6 +82,37 @@ public class SagaUseCasesTests
 
         ordemServicoGateway.Verify(g => g.Salvar(It.IsAny<OrdemServico>(), It.IsAny<CancellationToken>()), Times.Once);
         outputPort.Verify(p => p.Ok(It.IsAny<Guid>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task IniciarDiagnostico_QuandoNaoEncontrada_ChamaNaoEncontrado()
+    {
+        var gateway = new Mock<IOrdemServicoGateway>();
+        gateway.Setup(g => g.BuscarPorId(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((OrdemServico?)null);
+
+        var outputPort = new Mock<IIniciarDiagnosticoOutputPort>();
+        var useCase = new IniciarDiagnosticoUseCase(gateway.Object, outputPort.Object);
+
+        await useCase.Execute(new IniciarDiagnosticoInput(Guid.NewGuid()));
+
+        outputPort.Verify(p => p.NaoEncontrado(), Times.Once);
+    }
+
+    [Fact]
+    public async Task IniciarDiagnostico_QuandoEncontrada_AtualizaEChamaOk()
+    {
+        var os = CriarOrdemServico();
+        var gateway = new Mock<IOrdemServicoGateway>();
+        gateway.Setup(g => g.BuscarPorId(os.Id, It.IsAny<CancellationToken>())).ReturnsAsync(os);
+
+        var outputPort = new Mock<IIniciarDiagnosticoOutputPort>();
+        var useCase = new IniciarDiagnosticoUseCase(gateway.Object, outputPort.Object);
+
+        await useCase.Execute(new IniciarDiagnosticoInput(os.Id));
+
+        gateway.Verify(g => g.Atualizar(os, It.IsAny<CancellationToken>()), Times.Once);
+        outputPort.Verify(p => p.Ok(), Times.Once);
+        os.Status.Should().Be(Domain.OrdensServico.Enums.StatusOrdemServico.EmDiagnostico);
     }
 
     [Fact]

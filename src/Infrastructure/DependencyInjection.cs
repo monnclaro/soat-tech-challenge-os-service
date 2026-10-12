@@ -65,6 +65,7 @@ public static class DependencyInjection
 
         services.AddMassTransit(x =>
         {
+            x.AddConsumer<DiagnosticoIniciadoConsumer>();
             x.AddConsumer<DiagnosticoFinalizadoConsumer>();
             x.AddConsumer<DiagnosticoFalhouConsumer>();
             x.AddConsumer<OrcamentoGeradoConsumer>();

@@ -179,9 +179,10 @@ public class SagaOrdemServicoSteps
         await useCase.Execute(new InserirOrdemServicoInput(cliente.Id, veiculo.Id));
 
         _idOrdemServico.Should().NotBeEmpty();
-        // A própria abertura da OS já a deixa em EmDiagnostico — o comando pro
-        // Execução Service sai no mesmo instante (ver InserirOrdemServicoUseCase).
-        (await BuscarOrdemServico()).Status.Should().Be(Domain.OrdensServico.Enums.StatusOrdemServico.EmDiagnostico);
+        // A OS fica em Recebida até o Execução Service confirmar que a fila de
+        // execução abriu (evento DiagnosticoIniciado) — avanço reativo, nunca
+        // otimista (ver InserirOrdemServicoUseCase).
+        (await BuscarOrdemServico()).Status.Should().Be(Domain.OrdensServico.Enums.StatusOrdemServico.Recebida);
 
         // A abertura da OS já deve ter disparado (via domain event) o comando
         // que notifica o Execução Service a começar o diagnóstico.
@@ -191,6 +192,13 @@ public class SagaOrdemServicoSteps
     [When(@"o diagnóstico é registrado com serviços e produtos")]
     public async Task QuandoODiagnosticoERegistradoComServicosEProdutos()
     {
+        // Simula o evento "DiagnosticoIniciado" publicado pelo Execução Service ao
+        // abrir a fila de execução — só então a OS avança para EmDiagnostico.
+        var iniciadoConsumer = new DiagnosticoIniciadoConsumer(_gateway);
+        await iniciadoConsumer.Consume(CriarContexto(new DiagnosticoIniciado(_idOrdemServico)).Object);
+
+        (await BuscarOrdemServico()).Status.Should().Be(Domain.OrdensServico.Enums.StatusOrdemServico.EmDiagnostico);
+
         // Simula o evento "DiagnosticoFinalizado" publicado pelo Execução Service,
         // consumido pelo consumer MassTransit real (sem broker de verdade).
         var consumer = new DiagnosticoFinalizadoConsumer(_gateway);
