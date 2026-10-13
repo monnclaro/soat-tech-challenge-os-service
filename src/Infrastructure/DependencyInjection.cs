@@ -71,6 +71,7 @@ public static class DependencyInjection
             x.AddConsumer<OrcamentoGeradoConsumer>();
             x.AddConsumer<PagamentoAprovadoConsumer>();
             x.AddConsumer<PagamentoRecusadoConsumer>();
+            x.AddConsumer<ExecucaoIniciadaConsumer>();
             x.AddConsumer<ExecucaoFinalizadaConsumer>();
             x.AddConsumer<OrcamentoFalhouConsumer>();
             x.AddConsumer<ExecucaoFalhouConsumer>();

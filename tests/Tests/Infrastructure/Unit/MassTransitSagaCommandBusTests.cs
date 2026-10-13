@@ -26,19 +26,4 @@ public class MassTransitSagaCommandBusTests
             It.Is<GerarOrcamento>(c => c.IdOrdemServico == idOs && c.Servicos.Count == 1 && c.Produtos.Count == 1 && c.ValorTotal == 279.80m),
             It.IsAny<CancellationToken>()), Times.Once);
     }
-
-    [Fact]
-    public async Task EnviarIniciarExecucao_PublicaComandoCorreto()
-    {
-        var publishEndpoint = new Mock<IPublishEndpoint>();
-        var bus = new MassTransitSagaCommandBus(publishEndpoint.Object);
-
-        var idOs = Guid.NewGuid();
-
-        await bus.EnviarIniciarExecucao(idOs);
-
-        publishEndpoint.Verify(p => p.Publish(
-            It.Is<IniciarExecucao>(c => c.IdOrdemServico == idOs),
-            It.IsAny<CancellationToken>()), Times.Once);
-    }
 }

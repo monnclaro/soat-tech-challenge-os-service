@@ -25,7 +25,4 @@ public class MassTransitSagaCommandBus : ISagaCommandBus
         decimal valorTotal,
         CancellationToken ct = default) =>
         _publishEndpoint.Publish(new GerarOrcamento(idOrdemServico, servicos, produtos, valorTotal), ct);
-
-    public Task EnviarIniciarExecucao(Guid idOrdemServico, CancellationToken ct = default) =>
-        _publishEndpoint.Publish(new IniciarExecucao(idOrdemServico), ct);
 }

@@ -1,6 +1,7 @@
 using Application.OrdensServico.UseCases.AprovarPagamento;
 using Application.OrdensServico.UseCases.Finalizar;
 using Application.OrdensServico.UseCases.IniciarDiagnostico;
+using Application.OrdensServico.UseCases.IniciarExecucao;
 using Application.OrdensServico.UseCases.RegistrarDiagnostico;
 using Application.OrdensServico.UseCases.RegistrarLinkPagamento;
 using Application.Produtos.UseCases.DecrementarEstoque;
@@ -42,6 +43,20 @@ public class OutputPortsTests
     public void IniciarDiagnosticoOutputPort_MapeiaTodosOsCasos()
     {
         var outputPort = new IniciarDiagnosticoOutputPort();
+
+        var acao = () =>
+        {
+            outputPort.NaoEncontrado();
+            outputPort.Ok();
+        };
+
+        acao.Should().NotThrow();
+    }
+
+    [Fact]
+    public void IniciarExecucaoOutputPort_MapeiaTodosOsCasos()
+    {
+        var outputPort = new IniciarExecucaoOutputPort();
 
         var acao = () =>
         {

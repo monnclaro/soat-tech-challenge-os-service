@@ -176,6 +176,7 @@ public class ConsumersTests
         os.IniciarDiagnostico();
         os.RegistrarDiagnostico([new OrdemServicoServico(os.Id, Guid.NewGuid(), "Troca de óleo", 120m)], []);
         os.AprovarPagamento();
+        os.IniciarExecucao();
 
         var gateway = new Mock<IOrdemServicoGateway>();
         gateway.Setup(g => g.BuscarPorId(os.Id, It.IsAny<CancellationToken>())).ReturnsAsync(os);
@@ -217,7 +218,9 @@ public class ConsumersTests
 
         await consumer.Consume(context.Object);
 
-        os.Status.Should().Be(Domain.OrdensServico.Enums.StatusOrdemServico.EmExecucao);
+        // Não avança direto para EmExecucao — isso só acontece quando o Execução
+        // Service confirmar via ExecucaoIniciada (ver testes abaixo).
+        os.Status.Should().Be(Domain.OrdensServico.Enums.StatusOrdemServico.AguardandoExecucao);
     }
 
     [Fact]
@@ -228,6 +231,40 @@ public class ConsumersTests
 
         var consumer = new PagamentoAprovadoConsumer(gateway.Object);
         var context = CriarContexto(new PagamentoAprovado(Guid.NewGuid(), Guid.NewGuid()));
+
+        var act = () => consumer.Consume(context.Object);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task ExecucaoIniciadaConsumer_QuandoOsExiste_IniciaExecucao()
+    {
+        var os = CriarOrdemServicoRecebida();
+        os.IniciarDiagnostico();
+        os.RegistrarDiagnostico([new OrdemServicoServico(os.Id, Guid.NewGuid(), "Troca de óleo", 120m)], []);
+        os.AprovarPagamento();
+
+        var gateway = new Mock<IOrdemServicoGateway>();
+        gateway.Setup(g => g.BuscarPorId(os.Id, It.IsAny<CancellationToken>())).ReturnsAsync(os);
+
+        var consumer = new ExecucaoIniciadaConsumer(gateway.Object);
+        var context = CriarContexto(new ExecucaoIniciada(os.Id));
+
+        await consumer.Consume(context.Object);
+
+        os.Status.Should().Be(Domain.OrdensServico.Enums.StatusOrdemServico.EmExecucao);
+        gateway.Verify(g => g.Atualizar(os, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecucaoIniciadaConsumer_QuandoOsNaoExiste_LancaExcecao()
+    {
+        var gateway = new Mock<IOrdemServicoGateway>();
+        gateway.Setup(g => g.BuscarPorId(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((OrdemServico?)null);
+
+        var consumer = new ExecucaoIniciadaConsumer(gateway.Object);
+        var context = CriarContexto(new ExecucaoIniciada(Guid.NewGuid()));
 
         var act = () => consumer.Consume(context.Object);
 

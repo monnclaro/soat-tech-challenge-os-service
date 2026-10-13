@@ -3,6 +3,7 @@ using Application.Common.Interfaces;
 using Application.OrdensServico.UseCases.AprovarPagamento;
 using Application.OrdensServico.UseCases.Finalizar;
 using Application.OrdensServico.UseCases.IniciarDiagnostico;
+using Application.OrdensServico.UseCases.IniciarExecucao;
 using Application.OrdensServico.UseCases.RegistrarDiagnostico;
 using Application.OrdensServico.UseCases.RegistrarLinkPagamento;
 using Application.Produtos.UseCases.DecrementarEstoque;
@@ -24,6 +25,7 @@ public static class DependencyInjection
         services.AddScoped<IRegistrarLinkPagamentoOutputPort, RegistrarLinkPagamentoOutputPort>();
         services.AddScoped<IRegistrarDiagnosticoOutputPort, RegistrarDiagnosticoOutputPort>();
         services.AddScoped<IIniciarDiagnosticoOutputPort, IniciarDiagnosticoOutputPort>();
+        services.AddScoped<IIniciarExecucaoOutputPort, IniciarExecucaoOutputPort>();
         services.AddScoped<IAprovarPagamentoOutputPort, AprovarPagamentoOutputPort>();
         services.AddScoped<IFinalizarOutputPort, FinalizarOutputPort>();
 

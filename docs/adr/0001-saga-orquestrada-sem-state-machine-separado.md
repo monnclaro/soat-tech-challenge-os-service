@@ -16,13 +16,13 @@ A implementação mais comum de saga orquestrada usa um **saga state machine** d
 
 ## Decisão
 
-O **próprio agregado `OrdemServico`** (Domain) é o estado da saga — seu campo `Status` (`Recebida → EmDiagnostico → AguardandoAprovacao → EmExecucao → Finalizada → Entregue`, com `Cancelada` como compensação) já registra exatamente em que ponto do fluxo distribuído aquela OS está. Não existe uma tabela/entidade de saga separada.
+O **próprio agregado `OrdemServico`** (Domain) é o estado da saga — seu campo `Status` (`Recebida → EmDiagnostico → AguardandoAprovacao → AguardandoExecucao → EmExecucao → Finalizada → Entregue`, com `Cancelada` como compensação) já registra exatamente em que ponto do fluxo distribuído aquela OS está. Não existe uma tabela/entidade de saga separada.
 
 A orquestração acontece assim:
 
 1. Os **use cases existentes** (`InserirOrdemServicoUseCase`, `RegistrarDiagnosticoUseCase`, `AprovarPagamentoUseCase`, etc.) continuam sendo a única fonte de verdade da regra de negócio — chamados tanto por controllers REST quanto por consumers de mensageria.
 2. Ao mudar de estado, o agregado levanta **domain events** (`DiagnosticoRegistradoDomainEvent`, `OrdemServicoStatusAlteradoDomainEvent`, ...).
-3. **Handlers de domain event** (`src/Application/OrdensServico/EventHandlers/*`) reagem a esses eventos publicando os **comandos da saga** (`GerarOrcamento`, `IniciarExecucao`) via `ISagaCommandBus` (implementado com MassTransit/RabbitMQ). O primeiro passo da saga (iniciar o diagnóstico) é exceção: não é automático — a OS fica em `Recebida` até uma ação manual no Execução Service (`PATCH /execucoes/{id}/diagnostico/iniciar`) abrir a fila e publicar `DiagnosticoIniciado` de volta.
+3. **Handlers de domain event** (`src/Application/OrdensServico/EventHandlers/*`) reagem a esses eventos publicando o único **comando da saga** que resta (`GerarOrcamento`) via `ISagaCommandBus` (implementado com MassTransit/RabbitMQ). Os dois passos que o Execução Service executa (iniciar o diagnóstico, iniciar a execução) são exceção: nenhum dos dois é automático — a OS fica em `Recebida`/`AguardandoExecucao` até uma ação manual lá (`PATCH /execucoes/{id}/diagnostico/iniciar` e `PATCH /execucoes/{id}/servicos/{idServico}/iniciar-execucao`, respectivamente) publicar `DiagnosticoIniciado`/`ExecucaoIniciada` de volta.
 4. Os outros 2 serviços reagem a esses comandos e publicam **eventos da saga** de volta (`DiagnosticoFinalizado`/`DiagnosticoFalhou`, `OrcamentoGerado`/`OrcamentoFalhou`, `PagamentoAprovado`/`PagamentoRecusado`, `ExecucaoFinalizada`/`ExecucaoFalhou`).
 5. **Consumers MassTransit** (`src/Infrastructure/Messaging/Consumers/*`) traduzem esses eventos recebidos diretamente em chamadas aos use cases já existentes — nenhuma lógica de negócio duplicada entre a via REST e a via mensageria.
 

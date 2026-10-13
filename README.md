@@ -9,7 +9,7 @@ Microsserviço responsável pela **Ordem de Serviço (OS)** dentro da arquitetur
 
 - Abertura de Ordem de Serviço.
 - Consulta de status e histórico.
-- **Orquestração da saga** (abrir OS → diagnóstico → orçamento → aprovação de pagamento → execução → finalização), coordenando o [Billing Service](https://github.com/monnclaro/soat-tech-challenge-billing-service) e o [Execution Service](https://github.com/monnclaro/soat-tech-challenge-execution-service) via RabbitMQ/MassTransit — orquestração feita por reação a domain events (não um saga state machine separado): o próprio agregado `OrdemServico` guarda o estado da saga, handlers de domain event publicam os comandos (`IniciarDiagnostico`, `GerarOrcamento`, `IniciarExecucao`) e consumers MassTransit traduzem os eventos recebidos (`DiagnosticoFinalizado`, `DiagnosticoFalhou`, `OrcamentoFalhou`, `PagamentoAprovado`, `PagamentoRecusado`, `ExecucaoFinalizada`, `ExecucaoFalhou`) diretamente para os use cases já existentes.
+- **Orquestração da saga** (abrir OS → diagnóstico → orçamento → aprovação de pagamento → execução → finalização), coordenando o [Billing Service](https://github.com/monnclaro/soat-tech-challenge-billing-service) e o [Execution Service](https://github.com/monnclaro/soat-tech-challenge-execution-service) via RabbitMQ/MassTransit — orquestração feita por reação a domain events (não um saga state machine separado): o próprio agregado `OrdemServico` guarda o estado da saga, handlers de domain event publicam o único comando que resta (`GerarOrcamento`) e consumers MassTransit traduzem os eventos recebidos (`DiagnosticoIniciado`, `DiagnosticoFinalizado`, `DiagnosticoFalhou`, `OrcamentoFalhou`, `PagamentoAprovado`, `PagamentoRecusado`, `ExecucaoIniciada`, `ExecucaoFinalizada`, `ExecucaoFalhou`) diretamente para os use cases já existentes. Iniciar o diagnóstico e iniciar a execução nunca são automáticos — são sempre ação manual no Execução Service, só confirmados de volta via evento.
 - Cadastro de Clientes, Veículos, Produtos e Serviços (catálogo) — mantido aqui por ser o "dono" do agregado raiz `OrdemServico` e o autenticador do back-office.
 
 ## Papel na saga (orquestrador)
@@ -18,18 +18,18 @@ Este serviço é o **orquestrador da saga**, mas sem um saga state machine separ
 
 | Passo | Mensagem publicada por este serviço | Consumida por | Reação deste serviço ao evento de volta |
 |---|---|---|---|
-| 1 | `IniciarDiagnostico` (comando) | Execução Service | — |
+| 1 | — (abrir diagnóstico é ação manual no Execução Service) | — | `DiagnosticoIniciado` → avança a OS para `EmDiagnostico` |
 | 2 | — | — | `DiagnosticoFinalizado` → registra o diagnóstico e publica `GerarOrcamento`; **`DiagnosticoFalhou` → cancela a OS (compensação)** |
 | 3 | `GerarOrcamento` (comando) | Billing Service | — |
-| 4 | — | — | `PagamentoAprovado` → publica `IniciarExecucao`; **`OrcamentoFalhou`/`PagamentoRecusado` → cancela a OS (compensação)** |
-| 5 | `IniciarExecucao` (comando) | Execução Service | — |
+| 4 | — | — | `PagamentoAprovado` → avança a OS para `AguardandoExecucao`; **`OrcamentoFalhou`/`PagamentoRecusado` → cancela a OS (compensação)** |
+| 5 | — (iniciar execução é ação manual no Execução Service, item a item) | — | `ExecucaoIniciada` → avança a OS para `EmExecucao` |
 | 6 | — | — | `ExecucaoFinalizada` → finaliza a OS; **`ExecucaoFalhou` → cancela a OS (compensação)** |
 
 Cada evento de compensação (`DiagnosticoFalhou`, `OrcamentoFalhou`, `PagamentoRecusado`, `ExecucaoFalhou`) tem seu próprio consumer (`*Consumer.cs` em `src/Infrastructure/Messaging/Consumers/`), todos adaptadores finos que chamam o mesmo `CancelarUseCase` — nenhum precisa saber sobre os outros. Justificativa completa dessa escolha de design (por que não um saga state machine dedicado, tabela completa de compensação): [ADR 0001](./docs/adr/0001-saga-orquestrada-sem-state-machine-separado.md).
 
 ## Entidades principais
 
-- **OrdemServico**: agregado raiz da saga — `IdCliente`, `IdVeiculo`, `Status` (`Recebida → EmDiagnostico → AguardandoAprovacao → EmExecucao → Finalizada → Entregue`, com `Cancelada` como caminho de compensação a partir de qualquer ponto), `ValorTotal`, histórico de status (`HistoricoStatusOrdemServico`, uma linha por transição, para auditoria/consulta).
+- **OrdemServico**: agregado raiz da saga — `IdCliente`, `IdVeiculo`, `Status` (`Recebida → EmDiagnostico → AguardandoAprovacao → AguardandoExecucao → EmExecucao → Finalizada → Entregue`, com `Cancelada` como caminho de compensação a partir de qualquer ponto), `ValorTotal`, histórico de status (`HistoricoStatusOrdemServico`, uma linha por transição, para auditoria/consulta).
 - **Cliente**/**Veiculo**/**Produto**/**Servico**: catálogo/cadastro, sem relação com a saga — mantidos aqui por serem consultados na abertura da OS e por este ser o único serviço com back-office autenticado.
 - **Usuario**: credenciais do back-office (login que emite o JWT usado pelos 3 serviços).
 
@@ -68,12 +68,12 @@ Este é o **único serviço que emite tokens**: `POST /api/auth/login` valida as
 
 Contratos em `Soat.Contracts.Saga` (`src/Application/Messaging/Contracts/SagaContracts.cs`) — cópia idêntica mantida em cada um dos 3 repositórios (sem pacote NuGet compartilhado, para evitar a complexidade de um feed privado nesta fase do projeto). Fluxo:
 
-1. Abrir OS → publica `IniciarDiagnostico` (consumido pelo Execução Service).
+1. Abrir OS → fica em `Recebida`, sem publicar nada (iniciar o diagnóstico é sempre ação manual no Execução Service). Execução Service publica `DiagnosticoIniciado` → este serviço avança a OS para `EmDiagnostico`.
 2. Execução Service publica `DiagnosticoFinalizado` → este serviço registra o diagnóstico e publica `GerarOrcamento` (consumido pelo Billing Service); ou publica `DiagnosticoFalhou` → este serviço cancela a OS (compensação).
-3. Billing Service publica `PagamentoAprovado` → este serviço publica `IniciarExecucao` (consumido pelo Execução Service); ou publica `OrcamentoFalhou`/`PagamentoRecusado` → este serviço cancela a OS (compensação).
+3. Billing Service publica `PagamentoAprovado` → este serviço avança a OS para `AguardandoExecucao`, sem publicar nada (iniciar a execução, item a item, também é sempre ação manual no Execução Service); ou publica `OrcamentoFalhou`/`PagamentoRecusado` → este serviço cancela a OS (compensação). Execução Service publica `ExecucaoIniciada` → este serviço avança a OS para `EmExecucao`.
 4. Execução Service publica `ExecucaoFinalizada` → este serviço finaliza a OS; ou publica `ExecucaoFalhou` → este serviço cancela a OS (compensação).
 
-**Verificado de ponta a ponta com infraestrutura real** (RabbitMQ + PostgreSQL locais, sem mocks): um publisher standalone simulando Billing/Execução publicou `DiagnosticoFinalizado` → `PagamentoAprovado` → `ExecucaoFinalizada` na ordem, e a OS transitou corretamente `Recebida → EmDiagnostico → AguardandoAprovacao → EmExecucao → Finalizada → Entregue`, com histórico de status persistido a cada passo — confirmando o consumo real das mensagens (não apenas os testes unitários com mocks).
+**Verificado de ponta a ponta com infraestrutura real** (RabbitMQ + PostgreSQL locais, sem mocks), antes da introdução de `DiagnosticoIniciado`/`ExecucaoIniciada`: um publisher standalone simulando Billing/Execução publicou `DiagnosticoFinalizado` → `PagamentoAprovado` → `ExecucaoFinalizada` na ordem, e a OS transitou corretamente pelos status da saga, com histórico de status persistido a cada passo — confirmando o consumo real das mensagens (não apenas os testes unitários com mocks). O fluxo com os dois eventos novos está coberto pelos testes automatizados (unitários e BDD), mas ainda não foi reverificado manualmente contra um broker real.
 
 ## Status
 

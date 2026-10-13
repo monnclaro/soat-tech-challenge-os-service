@@ -93,12 +93,31 @@ public class OrdemServico : Entity
         LinkPagamento = linkPagamento;
     }
 
-    // Consumido a partir do evento PagamentoAprovado (Billing Service).
+    // Consumido a partir do evento PagamentoAprovado (Billing Service). Não avança
+    // direto para EmExecucao: a execução em si é sempre ação manual no Execução
+    // Service (item a item), nunca disparada automaticamente pela aprovação do
+    // pagamento. A OS só avança de verdade quando o Execução Service confirma de
+    // volta que o primeiro serviço começou (evento ExecucaoIniciada, ver
+    // ExecucaoIniciadaConsumer e o método IniciarExecucao abaixo).
     public void AprovarPagamento()
     {
         if (Status != StatusOrdemServico.AguardandoAprovacao)
         {
             throw new DomainException("O pagamento não está aguardando aprovação.");
+        }
+
+        Status = StatusOrdemServico.AguardandoExecucao;
+
+        Raise(new OrdemServicoStatusAlteradoDomainEvent(Id, Status));
+    }
+
+    // Consumido a partir do evento ExecucaoIniciada (Execução Service) — confirmação
+    // de que o primeiro serviço entrou em execução de verdade (ação manual lá).
+    public void IniciarExecucao()
+    {
+        if (Status != StatusOrdemServico.AguardandoExecucao)
+        {
+            throw new DomainException("A execução só pode ser iniciada após o pagamento aprovado.");
         }
 
         DataInicioExecucao = DateTime.UtcNow;

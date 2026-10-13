@@ -42,6 +42,7 @@ classDiagram
         +IniciarDiagnostico()
         +RegistrarDiagnostico(servicos, produtos)
         +AprovarPagamento()
+        +IniciarExecucao()
         +Cancelar()
         +Finalizar()
         +Entregar()
@@ -72,12 +73,14 @@ stateDiagram-v2
     [*] --> Recebida: Inserir()
     Recebida --> EmDiagnostico: IniciarDiagnostico()
     EmDiagnostico --> AguardandoAprovacao: RegistrarDiagnostico()
-    AguardandoAprovacao --> EmExecucao: AprovarPagamento()
+    AguardandoAprovacao --> AguardandoExecucao: AprovarPagamento()
+    AguardandoExecucao --> EmExecucao: IniciarExecucao()
     EmExecucao --> Finalizada: Finalizar()
     Finalizada --> Entregue: Entregar()
 
     EmDiagnostico --> Cancelada: Cancelar() [DiagnosticoFalhou]
     AguardandoAprovacao --> Cancelada: Cancelar() [OrcamentoFalhou / PagamentoRecusado]
+    AguardandoExecucao --> Cancelada: Cancelar() [ExecucaoFalhou]
     EmExecucao --> Cancelada: Cancelar() [ExecucaoFalhou]
 ```
 
@@ -115,9 +118,11 @@ sequenceDiagram
 
             alt Pagamento aprovado
                 Bill-->>OS: PagamentoAprovado (evento)
-                OS->>OS: AprovarPagamento() → EmExecucao
-                OS-->>Exec: IniciarExecucao (comando)
-                Exec->>Exec: IniciarExecucaoServico() por item
+                OS->>OS: AprovarPagamento() → AguardandoExecucao
+                Note over Exec: Ação manual, item a item<br/>(PATCH .../servicos/{id}/iniciar-execucao) — sem<br/>disparo automático ao aprovar o pagamento
+                Exec->>Exec: IniciarExecucaoServico() no 1º item
+                Exec-->>OS: ExecucaoIniciada (evento)
+                OS->>OS: IniciarExecucao() → EmExecucao
                 Exec-->>OS: ExecucaoFinalizada (evento)
                 OS->>OS: Finalizar() → Finalizada
             else Pagamento recusado
@@ -152,7 +157,6 @@ tabela completa e justificativa de design no [ADR 0001](./adr/0001-saga-orquestr
 | Mensagem | Tipo | Direção | Consumer/Handler |
 |---|---|---|---|
 | `GerarOrcamento` | Comando | OS → Billing | (consumido no Billing Service) |
-| `IniciarExecucao` | Comando | OS → Execução | (consumido no Execução Service) |
 | `DiagnosticoIniciado` | Evento | Execução → OS | `DiagnosticoIniciadoConsumer` |
 | `DiagnosticoFinalizado` | Evento | Execução → OS | `DiagnosticoFinalizadoConsumer` |
 | `DiagnosticoFalhou` | Evento (compensação) | Execução → OS | `DiagnosticoFalhouConsumer` |
@@ -160,8 +164,14 @@ tabela completa e justificativa de design no [ADR 0001](./adr/0001-saga-orquestr
 | `OrcamentoFalhou` | Evento (compensação) | Billing → OS | `OrcamentoFalhouConsumer` |
 | `PagamentoAprovado` | Evento | Billing → OS | `PagamentoAprovadoConsumer` |
 | `PagamentoRecusado` | Evento (compensação) | Billing → OS | `PagamentoRecusadoConsumer` |
+| `ExecucaoIniciada` | Evento | Execução → OS | `ExecucaoIniciadaConsumer` |
 | `ExecucaoFinalizada` | Evento | Execução → OS | `ExecucaoFinalizadaConsumer` |
 | `ExecucaoFalhou` | Evento (compensação) | Execução → OS | `ExecucaoFalhouConsumer` |
+
+Diagnóstico e execução são exceção ao padrão comando/evento: nenhum dos dois é
+disparado por um comando automático da OS — ambos são sempre ação manual no
+Execução Service, só confirmados de volta via evento (`DiagnosticoIniciado` /
+`ExecucaoIniciada`).
 
 Todos os consumers são adaptadores finos: constroem o use case correspondente (o
 mesmo usado pelos endpoints REST internos) e traduzem "não encontrada" em exceção
