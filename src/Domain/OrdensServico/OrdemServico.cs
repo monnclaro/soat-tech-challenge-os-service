@@ -36,7 +36,6 @@ public class OrdemServico : Entity
         DataCriacao = DateTime.UtcNow;
 
         Raise(new OrdemServicoStatusAlteradoDomainEvent(Id, Status));
-        Raise(new OrdemServicoAbertaDomainEvent(Id, IdCliente, IdVeiculo));
     }
 
     // Disparado pelo orquestrador da saga ao comandar "IniciarDiagnostico" no Execução Service.

@@ -6,8 +6,6 @@ namespace Application.Common.Interfaces;
 // este contrato; a implementação real mora em Infrastructure.Messaging).
 public interface ISagaCommandBus
 {
-    Task EnviarIniciarDiagnostico(Guid idOrdemServico, Guid idCliente, Guid idVeiculo, CancellationToken ct = default);
-
     Task EnviarGerarOrcamento(
         Guid idOrdemServico,
         IReadOnlyList<ItemServicoDiagnosticado> servicos,

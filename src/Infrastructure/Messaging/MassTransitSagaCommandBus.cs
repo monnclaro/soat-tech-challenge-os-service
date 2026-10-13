@@ -18,9 +18,6 @@ public class MassTransitSagaCommandBus : ISagaCommandBus
         _publishEndpoint = publishEndpoint;
     }
 
-    public Task EnviarIniciarDiagnostico(Guid idOrdemServico, Guid idCliente, Guid idVeiculo, CancellationToken ct = default) =>
-        _publishEndpoint.Publish(new IniciarDiagnostico(idOrdemServico, idCliente, idVeiculo), ct);
-
     public Task EnviarGerarOrcamento(
         Guid idOrdemServico,
         IReadOnlyList<ItemServicoDiagnosticado> servicos,

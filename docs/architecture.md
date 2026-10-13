@@ -96,7 +96,10 @@ sequenceDiagram
 
     Cliente->>OS: POST /api/v1/ordens-servico
     OS->>OS: Inserir() → Status=Recebida
-    OS-->>Exec: IniciarDiagnostico (comando)
+    Note over Exec: Ação manual no Execução Service<br/>(PATCH .../diagnostico/iniciar) — sem<br/>disparo automático ao inserir a OS
+    Exec->>Exec: Abrir() + IniciarDiagnostico()
+    Exec-->>OS: DiagnosticoIniciado (evento)
+    OS->>OS: IniciarDiagnostico() → EmDiagnostico
 
     alt Diagnóstico identifica o problema
         Exec-->>OS: DiagnosticoFinalizado (evento)
@@ -148,9 +151,9 @@ tabela completa e justificativa de design no [ADR 0001](./adr/0001-saga-orquestr
 
 | Mensagem | Tipo | Direção | Consumer/Handler |
 |---|---|---|---|
-| `IniciarDiagnostico` | Comando | OS → Execução | (consumido no Execução Service) |
 | `GerarOrcamento` | Comando | OS → Billing | (consumido no Billing Service) |
 | `IniciarExecucao` | Comando | OS → Execução | (consumido no Execução Service) |
+| `DiagnosticoIniciado` | Evento | Execução → OS | `DiagnosticoIniciadoConsumer` |
 | `DiagnosticoFinalizado` | Evento | Execução → OS | `DiagnosticoFinalizadoConsumer` |
 | `DiagnosticoFalhou` | Evento (compensação) | Execução → OS | `DiagnosticoFalhouConsumer` |
 | `OrcamentoGerado` | Evento | Billing → OS | (não consumido pelo OS hoje — informativo) |
