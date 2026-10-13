@@ -1,5 +1,6 @@
 using Application.Common.Interfaces;
 using Domain.Common.Events;
+using Domain.OrdensServico.Enums;
 using Domain.OrdensServico.Events;
 using FluentAssertions;
 using Infrastructure.DomainEvents;
@@ -9,11 +10,11 @@ namespace Tests.Infrastructure.Unit;
 
 public class DomainEventsDispatcherTests
 {
-    private sealed class ContadorHandler : IDomainEventHandler<OrdemServicoAbertaDomainEvent>
+    private sealed class ContadorHandler : IDomainEventHandler<OrdemServicoStatusAlteradoDomainEvent>
     {
         public int Chamadas { get; private set; }
 
-        public Task Handle(OrdemServicoAbertaDomainEvent domainEvent, CancellationToken cancellationToken)
+        public Task Handle(OrdemServicoStatusAlteradoDomainEvent domainEvent, CancellationToken cancellationToken)
         {
             Chamadas++;
             return Task.CompletedTask;
@@ -25,13 +26,13 @@ public class DomainEventsDispatcherTests
     {
         var handler = new ContadorHandler();
         var services = new ServiceCollection();
-        services.AddSingleton<IDomainEventHandler<OrdemServicoAbertaDomainEvent>>(handler);
+        services.AddSingleton<IDomainEventHandler<OrdemServicoStatusAlteradoDomainEvent>>(handler);
         var provider = services.BuildServiceProvider();
 
         var dispatcher = new DomainEventsDispatcher(provider);
 
-        var evento1 = new OrdemServicoAbertaDomainEvent(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
-        var evento2 = new OrdemServicoAbertaDomainEvent(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+        var evento1 = new OrdemServicoStatusAlteradoDomainEvent(Guid.NewGuid(), StatusOrdemServico.Recebida);
+        var evento2 = new OrdemServicoStatusAlteradoDomainEvent(Guid.NewGuid(), StatusOrdemServico.EmDiagnostico);
 
         await dispatcher.DispatchAsync([evento1, evento2]);
 
@@ -44,7 +45,7 @@ public class DomainEventsDispatcherTests
         var provider = new ServiceCollection().BuildServiceProvider();
         var dispatcher = new DomainEventsDispatcher(provider);
 
-        var act = () => dispatcher.DispatchAsync([new OrdemServicoAbertaDomainEvent(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid())]);
+        var act = () => dispatcher.DispatchAsync([new OrdemServicoStatusAlteradoDomainEvent(Guid.NewGuid(), StatusOrdemServico.Recebida)]);
 
         await act.Should().NotThrowAsync();
     }
@@ -54,7 +55,7 @@ public class DomainEventsDispatcherTests
     {
         var handler = new ContadorHandler();
         var services = new ServiceCollection();
-        services.AddSingleton<IDomainEventHandler<OrdemServicoAbertaDomainEvent>>(handler);
+        services.AddSingleton<IDomainEventHandler<OrdemServicoStatusAlteradoDomainEvent>>(handler);
         var provider = services.BuildServiceProvider();
 
         var dispatcher = new DomainEventsDispatcher(provider);

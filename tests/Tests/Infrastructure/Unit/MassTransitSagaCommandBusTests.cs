@@ -11,23 +11,6 @@ namespace Tests.Infrastructure.Unit;
 public class MassTransitSagaCommandBusTests
 {
     [Fact]
-    public async Task EnviarIniciarDiagnostico_PublicaComandoCorreto()
-    {
-        var publishEndpoint = new Mock<IPublishEndpoint>();
-        var bus = new MassTransitSagaCommandBus(publishEndpoint.Object);
-
-        var idOs = Guid.NewGuid();
-        var idCliente = Guid.NewGuid();
-        var idVeiculo = Guid.NewGuid();
-
-        await bus.EnviarIniciarDiagnostico(idOs, idCliente, idVeiculo);
-
-        publishEndpoint.Verify(p => p.Publish(
-            It.Is<IniciarDiagnostico>(c => c.IdOrdemServico == idOs && c.IdCliente == idCliente && c.IdVeiculo == idVeiculo),
-            It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
     public async Task EnviarGerarOrcamento_PublicaComandoComItensETotal()
     {
         var publishEndpoint = new Mock<IPublishEndpoint>();

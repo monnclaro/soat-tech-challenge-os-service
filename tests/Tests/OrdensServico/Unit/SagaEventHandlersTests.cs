@@ -16,21 +16,6 @@ namespace Tests.OrdensServico.Unit;
 public class SagaEventHandlersTests
 {
     [Fact]
-    public async Task EnviarIniciarDiagnosticoHandler_PublicaComando()
-    {
-        var bus = new Mock<ISagaCommandBus>();
-        var handler = new EnviarIniciarDiagnosticoHandler(bus.Object);
-
-        var idOrdemServico = Guid.NewGuid();
-        var idCliente = Guid.NewGuid();
-        var idVeiculo = Guid.NewGuid();
-
-        await handler.Handle(new OrdemServicoAbertaDomainEvent(idOrdemServico, idCliente, idVeiculo), CancellationToken.None);
-
-        bus.Verify(b => b.EnviarIniciarDiagnostico(idOrdemServico, idCliente, idVeiculo, It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
     public async Task EnviarGerarOrcamentoHandler_MapeiaItensEPublicaComando()
     {
         var bus = new Mock<ISagaCommandBus>();

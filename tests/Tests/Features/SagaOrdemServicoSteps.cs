@@ -34,13 +34,11 @@ namespace Tests.Features;
 internal sealed class FakeOrdemServicoGateway : IOrdemServicoGateway
 {
     private readonly Dictionary<Guid, OrdemServico> _armazenamento = new();
-    private readonly EnviarIniciarDiagnosticoHandler _enviarIniciarDiagnostico;
     private readonly EnviarGerarOrcamentoHandler _enviarGerarOrcamento;
     private readonly EnviarIniciarExecucaoHandler _enviarIniciarExecucao;
 
     public FakeOrdemServicoGateway(ISagaCommandBus bus)
     {
-        _enviarIniciarDiagnostico = new EnviarIniciarDiagnosticoHandler(bus);
         _enviarGerarOrcamento = new EnviarGerarOrcamentoHandler(bus);
         _enviarIniciarExecucao = new EnviarIniciarExecucaoHandler(bus);
     }
@@ -84,9 +82,6 @@ internal sealed class FakeOrdemServicoGateway : IOrdemServicoGateway
         {
             switch (evento)
             {
-                case OrdemServicoAbertaDomainEvent aberta:
-                    await _enviarIniciarDiagnostico.Handle(aberta, ct);
-                    break;
                 case DiagnosticoRegistradoDomainEvent diagnosticoRegistrado:
                     await _enviarGerarOrcamento.Handle(diagnosticoRegistrado, ct);
                     break;
@@ -102,15 +97,8 @@ internal sealed class FakeOrdemServicoGateway : IOrdemServicoGateway
 // asserção posterior (equivalente ao "capture the ISagaCommands" do enunciado).
 internal sealed class FakeSagaCommandBus : ISagaCommandBus
 {
-    public List<IniciarDiagnostico> IniciarDiagnosticoComandos { get; } = [];
     public List<GerarOrcamento> GerarOrcamentoComandos { get; } = [];
     public List<IniciarExecucao> IniciarExecucaoComandos { get; } = [];
-
-    public Task EnviarIniciarDiagnostico(Guid idOrdemServico, Guid idCliente, Guid idVeiculo, CancellationToken ct = default)
-    {
-        IniciarDiagnosticoComandos.Add(new IniciarDiagnostico(idOrdemServico, idCliente, idVeiculo));
-        return Task.CompletedTask;
-    }
 
     public Task EnviarGerarOrcamento(
         Guid idOrdemServico,
@@ -179,14 +167,10 @@ public class SagaOrdemServicoSteps
         await useCase.Execute(new InserirOrdemServicoInput(cliente.Id, veiculo.Id));
 
         _idOrdemServico.Should().NotBeEmpty();
-        // A OS fica em Recebida até o Execução Service confirmar que a fila de
-        // execução abriu (evento DiagnosticoIniciado) — avanço reativo, nunca
-        // otimista (ver InserirOrdemServicoUseCase).
+        // A OS fica em Recebida até uma ação manual no Execução Service abrir a
+        // fila de execução e confirmar de volta (evento DiagnosticoIniciado) —
+        // nenhum disparo automático ao inserir (ver InserirOrdemServicoUseCase).
         (await BuscarOrdemServico()).Status.Should().Be(Domain.OrdensServico.Enums.StatusOrdemServico.Recebida);
-
-        // A abertura da OS já deve ter disparado (via domain event) o comando
-        // que notifica o Execução Service a começar o diagnóstico.
-        _bus.IniciarDiagnosticoComandos.Should().ContainSingle(c => c.IdOrdemServico == _idOrdemServico);
     }
 
     [When(@"o diagnóstico é registrado com serviços e produtos")]

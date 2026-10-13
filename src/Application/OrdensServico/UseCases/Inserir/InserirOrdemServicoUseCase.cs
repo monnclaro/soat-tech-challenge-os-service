@@ -7,12 +7,13 @@ namespace Application.OrdensServico.UseCases.Inserir;
 
 // Abertura da OS: só cabeçalho (cliente + veículo), status Recebida. O
 // diagnóstico (que identifica os serviços/produtos necessários) passou a ser
-// responsabilidade do Execução Service, comandado de forma assíncrona a
-// partir daqui (EnviarIniciarDiagnosticoHandler, reagindo a
-// OrdemServicoAbertaDomainEvent) — mas a OS só avança para EmDiagnostico
-// quando o Execução Service confirma de volta (evento DiagnosticoIniciado,
-// ver DiagnosticoIniciadoConsumer), nunca de forma otimista aqui. Mesmo
-// padrão reativo usado em todas as outras transições da saga.
+// responsabilidade do Execução Service — sem nenhum disparo automático daqui:
+// quem decide iniciar o diagnóstico é uma ação manual lá
+// (PATCH /execucoes/{id}/diagnostico/iniciar). A OS só avança para
+// EmDiagnostico quando o Execução Service confirma de volta (evento
+// DiagnosticoIniciado, ver DiagnosticoIniciadoConsumer), nunca de forma
+// otimista aqui. Mesmo padrão reativo usado em todas as outras transições
+// da saga.
 public class InserirOrdemServicoUseCase : IUseCase
 {
     private readonly IOrdemServicoGateway _gateway;

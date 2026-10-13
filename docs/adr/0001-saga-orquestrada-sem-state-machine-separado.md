@@ -21,8 +21,8 @@ O **próprio agregado `OrdemServico`** (Domain) é o estado da saga — seu camp
 A orquestração acontece assim:
 
 1. Os **use cases existentes** (`InserirOrdemServicoUseCase`, `RegistrarDiagnosticoUseCase`, `AprovarPagamentoUseCase`, etc.) continuam sendo a única fonte de verdade da regra de negócio — chamados tanto por controllers REST quanto por consumers de mensageria.
-2. Ao mudar de estado, o agregado levanta **domain events** (`OrdemServicoAbertaDomainEvent`, `DiagnosticoRegistradoDomainEvent`, `OrdemServicoStatusAlteradoDomainEvent`, ...).
-3. **Handlers de domain event** (`src/Application/OrdensServico/EventHandlers/*`) reagem a esses eventos publicando os **comandos da saga** (`IniciarDiagnostico`, `GerarOrcamento`, `IniciarExecucao`) via `ISagaCommandBus` (implementado com MassTransit/RabbitMQ).
+2. Ao mudar de estado, o agregado levanta **domain events** (`DiagnosticoRegistradoDomainEvent`, `OrdemServicoStatusAlteradoDomainEvent`, ...).
+3. **Handlers de domain event** (`src/Application/OrdensServico/EventHandlers/*`) reagem a esses eventos publicando os **comandos da saga** (`GerarOrcamento`, `IniciarExecucao`) via `ISagaCommandBus` (implementado com MassTransit/RabbitMQ). O primeiro passo da saga (iniciar o diagnóstico) é exceção: não é automático — a OS fica em `Recebida` até uma ação manual no Execução Service (`PATCH /execucoes/{id}/diagnostico/iniciar`) abrir a fila e publicar `DiagnosticoIniciado` de volta.
 4. Os outros 2 serviços reagem a esses comandos e publicam **eventos da saga** de volta (`DiagnosticoFinalizado`/`DiagnosticoFalhou`, `OrcamentoGerado`/`OrcamentoFalhou`, `PagamentoAprovado`/`PagamentoRecusado`, `ExecucaoFinalizada`/`ExecucaoFalhou`).
 5. **Consumers MassTransit** (`src/Infrastructure/Messaging/Consumers/*`) traduzem esses eventos recebidos diretamente em chamadas aos use cases já existentes — nenhuma lógica de negócio duplicada entre a via REST e a via mensageria.
 
