@@ -12,6 +12,4 @@ public interface ISagaCommandBus
         IReadOnlyList<ItemProdutoDiagnosticado> produtos,
         decimal valorTotal,
         CancellationToken ct = default);
-
-    Task EnviarIniciarExecucao(Guid idOrdemServico, CancellationToken ct = default);
 }

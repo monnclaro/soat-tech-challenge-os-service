@@ -31,9 +31,10 @@ public class OrdemServicoGateway : IOrdemServicoGateway
                         && o.Status != StatusOrdemServico.Cancelada)
             .OrderBy(o =>
                 o.Status == StatusOrdemServico.EmExecucao ? 1 :
-                o.Status == StatusOrdemServico.AguardandoAprovacao ? 2 :
-                o.Status == StatusOrdemServico.EmDiagnostico ? 3 :
-                o.Status == StatusOrdemServico.Recebida ? 4 : 99)
+                o.Status == StatusOrdemServico.AguardandoExecucao ? 2 :
+                o.Status == StatusOrdemServico.AguardandoAprovacao ? 3 :
+                o.Status == StatusOrdemServico.EmDiagnostico ? 4 :
+                o.Status == StatusOrdemServico.Recebida ? 5 : 99)
             .ThenBy(o => o.DataCriacao);
 
         var total = await query.CountAsync(ct);

@@ -2,6 +2,7 @@ using Application.OrdensServico.UseCases.AprovarPagamento;
 using Application.OrdensServico.UseCases.Cancelar;
 using Application.OrdensServico.UseCases.Finalizar;
 using Application.OrdensServico.UseCases.IniciarDiagnostico;
+using Application.OrdensServico.UseCases.IniciarExecucao;
 using Application.OrdensServico.UseCases.Inserir;
 using Application.OrdensServico.UseCases.RegistrarDiagnostico;
 using Application.OrdensServico.UseCases.RegistrarLinkPagamento;
@@ -189,6 +190,43 @@ public class SagaUseCasesTests
 
         await useCase.Execute(new AprovarPagamentoInput(os.Id));
 
+        outputPort.Verify(p => p.Ok(), Times.Once);
+        os.Status.Should().Be(Domain.OrdensServico.Enums.StatusOrdemServico.AguardandoExecucao);
+    }
+
+    [Fact]
+    public async Task IniciarExecucao_QuandoNaoEncontrada_ChamaNaoEncontrado()
+    {
+        var gateway = new Mock<IOrdemServicoGateway>();
+        gateway.Setup(g => g.BuscarPorId(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((OrdemServico?)null);
+
+        var outputPort = new Mock<IIniciarExecucaoOutputPort>();
+        var useCase = new IniciarExecucaoUseCase(gateway.Object, outputPort.Object);
+
+        await useCase.Execute(new IniciarExecucaoInput(Guid.NewGuid()));
+
+        outputPort.Verify(p => p.NaoEncontrado(), Times.Once);
+    }
+
+    [Fact]
+    public async Task IniciarExecucao_QuandoEncontrada_AtualizaEChamaOk()
+    {
+        var os = CriarOrdemServico(o =>
+        {
+            o.IniciarDiagnostico();
+            o.RegistrarDiagnostico([new Domain.OrdensServico.Servicos.OrdemServicoServico(o.Id, Guid.NewGuid(), "Troca de óleo", 120m)], []);
+            o.AprovarPagamento();
+        });
+
+        var gateway = new Mock<IOrdemServicoGateway>();
+        gateway.Setup(g => g.BuscarPorId(os.Id, It.IsAny<CancellationToken>())).ReturnsAsync(os);
+
+        var outputPort = new Mock<IIniciarExecucaoOutputPort>();
+        var useCase = new IniciarExecucaoUseCase(gateway.Object, outputPort.Object);
+
+        await useCase.Execute(new IniciarExecucaoInput(os.Id));
+
+        gateway.Verify(g => g.Atualizar(os, It.IsAny<CancellationToken>()), Times.Once);
         outputPort.Verify(p => p.Ok(), Times.Once);
         os.Status.Should().Be(Domain.OrdensServico.Enums.StatusOrdemServico.EmExecucao);
     }

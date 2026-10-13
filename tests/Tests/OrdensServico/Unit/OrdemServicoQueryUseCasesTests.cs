@@ -263,6 +263,7 @@ public class OrdemServicoQueryUseCasesTests
         os.IniciarDiagnostico();
         os.RegistrarDiagnostico([new OrdemServicoServico(os.Id, Guid.NewGuid(), "Troca de óleo", 120m)], []);
         os.AprovarPagamento();
+        os.IniciarExecucao();
         os.Finalizar();
 
         var gateway = new Mock<IOrdemServicoGateway>();
@@ -286,6 +287,7 @@ public class OrdemServicoQueryUseCasesTests
         os.IniciarDiagnostico();
         os.RegistrarDiagnostico([new OrdemServicoServico(os.Id, Guid.NewGuid(), "Troca de óleo", 120m)], []);
         os.AprovarPagamento();
+        os.IniciarExecucao();
 
         var gateway = new Mock<IOrdemServicoGateway>();
         gateway.Setup(g => g.BuscarPorId(os.Id, It.IsAny<CancellationToken>())).ReturnsAsync(os);

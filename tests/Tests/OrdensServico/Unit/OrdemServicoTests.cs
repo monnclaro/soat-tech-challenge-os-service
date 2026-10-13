@@ -40,10 +40,17 @@ public class OrdemServicoTests
         return os;
     }
 
-    private static OrdemServico CriarOrdemServicoEmExecucao()
+    private static OrdemServico CriarOrdemServicoAguardandoExecucao()
     {
         var os = CriarOrdemServicoAguardandoAprovacao();
         os.AprovarPagamento();
+        return os;
+    }
+
+    private static OrdemServico CriarOrdemServicoEmExecucao()
+    {
+        var os = CriarOrdemServicoAguardandoExecucao();
+        os.IniciarExecucao();
         return os;
     }
 
@@ -148,14 +155,17 @@ public class OrdemServicoTests
     }
 
     [Fact]
-    public void AprovarPagamento_QuandoAguardandoAprovacao_IniciaExecucao()
+    public void AprovarPagamento_QuandoAguardandoAprovacao_MudaParaAguardandoExecucaoSemIniciarExecucao()
     {
         var os = CriarOrdemServicoAguardandoAprovacao();
 
         os.AprovarPagamento();
 
-        os.Status.Should().Be(StatusOrdemServico.EmExecucao);
-        os.DataInicioExecucao.Should().NotBeNull();
+        // Não inicia a execução de verdade aqui — isso é sempre ação manual no
+        // Execução Service, confirmada de volta pelo evento ExecucaoIniciada
+        // (ver IniciarExecucao abaixo).
+        os.Status.Should().Be(StatusOrdemServico.AguardandoExecucao);
+        os.DataInicioExecucao.Should().BeNull();
     }
 
     [Fact]
@@ -168,10 +178,32 @@ public class OrdemServicoTests
         act.Should().Throw<DomainException>();
     }
 
+    [Fact]
+    public void IniciarExecucao_QuandoAguardandoExecucao_MudaParaEmExecucao()
+    {
+        var os = CriarOrdemServicoAguardandoExecucao();
+
+        os.IniciarExecucao();
+
+        os.Status.Should().Be(StatusOrdemServico.EmExecucao);
+        os.DataInicioExecucao.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void IniciarExecucao_QuandoNaoAguardandoExecucao_LancaExcecao()
+    {
+        var os = CriarOrdemServicoAguardandoAprovacao();
+
+        var act = () => os.IniciarExecucao();
+
+        act.Should().Throw<DomainException>();
+    }
+
     [Theory]
     [InlineData(StatusOrdemServico.Recebida)]
     [InlineData(StatusOrdemServico.EmDiagnostico)]
     [InlineData(StatusOrdemServico.AguardandoAprovacao)]
+    [InlineData(StatusOrdemServico.AguardandoExecucao)]
     [InlineData(StatusOrdemServico.EmExecucao)]
     public void Cancelar_QuandoNaoFinalizadaNemEntregue_MudaParaCancelada(StatusOrdemServico statusInicial)
     {
@@ -180,6 +212,7 @@ public class OrdemServicoTests
             StatusOrdemServico.Recebida => CriarOrdemServicoRecebida(),
             StatusOrdemServico.EmDiagnostico => CriarOrdemServicoEmDiagnostico(),
             StatusOrdemServico.AguardandoAprovacao => CriarOrdemServicoAguardandoAprovacao(),
+            StatusOrdemServico.AguardandoExecucao => CriarOrdemServicoAguardandoExecucao(),
             StatusOrdemServico.EmExecucao => CriarOrdemServicoEmExecucao(),
             _ => throw new ArgumentOutOfRangeException(nameof(statusInicial))
         };

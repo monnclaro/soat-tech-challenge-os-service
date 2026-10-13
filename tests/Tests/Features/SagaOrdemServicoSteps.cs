@@ -35,12 +35,10 @@ internal sealed class FakeOrdemServicoGateway : IOrdemServicoGateway
 {
     private readonly Dictionary<Guid, OrdemServico> _armazenamento = new();
     private readonly EnviarGerarOrcamentoHandler _enviarGerarOrcamento;
-    private readonly EnviarIniciarExecucaoHandler _enviarIniciarExecucao;
 
     public FakeOrdemServicoGateway(ISagaCommandBus bus)
     {
         _enviarGerarOrcamento = new EnviarGerarOrcamentoHandler(bus);
-        _enviarIniciarExecucao = new EnviarIniciarExecucaoHandler(bus);
     }
 
     public Task<OrdemServico?> BuscarPorId(Guid id, CancellationToken ct = default) =>
@@ -85,9 +83,6 @@ internal sealed class FakeOrdemServicoGateway : IOrdemServicoGateway
                 case DiagnosticoRegistradoDomainEvent diagnosticoRegistrado:
                     await _enviarGerarOrcamento.Handle(diagnosticoRegistrado, ct);
                     break;
-                case OrdemServicoStatusAlteradoDomainEvent statusAlterado:
-                    await _enviarIniciarExecucao.Handle(statusAlterado, ct);
-                    break;
             }
         }
     }
@@ -98,7 +93,6 @@ internal sealed class FakeOrdemServicoGateway : IOrdemServicoGateway
 internal sealed class FakeSagaCommandBus : ISagaCommandBus
 {
     public List<GerarOrcamento> GerarOrcamentoComandos { get; } = [];
-    public List<IniciarExecucao> IniciarExecucaoComandos { get; } = [];
 
     public Task EnviarGerarOrcamento(
         Guid idOrdemServico,
@@ -108,12 +102,6 @@ internal sealed class FakeSagaCommandBus : ISagaCommandBus
         CancellationToken ct = default)
     {
         GerarOrcamentoComandos.Add(new GerarOrcamento(idOrdemServico, servicos, produtos, valorTotal));
-        return Task.CompletedTask;
-    }
-
-    public Task EnviarIniciarExecucao(Guid idOrdemServico, CancellationToken ct = default)
-    {
-        IniciarExecucaoComandos.Add(new IniciarExecucao(idOrdemServico));
         return Task.CompletedTask;
     }
 }
@@ -213,18 +201,23 @@ public class SagaOrdemServicoSteps
 
         await consumer.Consume(CriarContexto(evento).Object);
 
-        var os = await BuscarOrdemServico();
-        os.Status.Should().Be(Domain.OrdensServico.Enums.StatusOrdemServico.EmExecucao);
-
-        // A aprovação do pagamento muda o status pra EmExecucao, o que deve
-        // ter disparado (via domain event) o comando que manda o Execução
-        // Service iniciar a execução dos serviços.
-        _bus.IniciarExecucaoComandos.Should().ContainSingle(c => c.IdOrdemServico == _idOrdemServico);
+        // O pagamento aprovado não dispara a execução automaticamente — a OS
+        // fica em AguardandoExecucao até uma ação manual no Execução Service
+        // confirmar de volta que o primeiro serviço começou (ver step seguinte).
+        (await BuscarOrdemServico()).Status.Should().Be(Domain.OrdensServico.Enums.StatusOrdemServico.AguardandoExecucao);
     }
 
     [When(@"a execução dos serviços é finalizada")]
     public async Task QuandoAExecucaoDosServicosEFinalizada()
     {
+        // Simula o evento "ExecucaoIniciada" publicado pelo Execução Service ao
+        // primeiro serviço entrar em execução (ação manual) — só então a OS
+        // avança para EmExecucao.
+        var iniciadaConsumer = new ExecucaoIniciadaConsumer(_gateway);
+        await iniciadaConsumer.Consume(CriarContexto(new ExecucaoIniciada(_idOrdemServico)).Object);
+
+        (await BuscarOrdemServico()).Status.Should().Be(Domain.OrdensServico.Enums.StatusOrdemServico.EmExecucao);
+
         var consumer = new ExecucaoFinalizadaConsumer(_gateway);
         var evento = new ExecucaoFinalizada(_idOrdemServico);
 

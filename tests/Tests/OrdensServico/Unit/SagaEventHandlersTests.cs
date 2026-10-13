@@ -1,6 +1,5 @@
 using Application.Common.Interfaces;
 using Application.OrdensServico.EventHandlers;
-using Domain.OrdensServico.Enums;
 using Domain.OrdensServico.Events;
 using Domain.OrdensServico.Produtos;
 using Domain.OrdensServico.Servicos;
@@ -36,34 +35,5 @@ public class SagaEventHandlersTests
             It.Is<IReadOnlyList<ItemProdutoDiagnosticado>>(p => p.Count == 1 && p[0].IdProduto == idProduto),
             279.80m,
             It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task EnviarIniciarExecucaoHandler_QuandoStatusEmExecucao_PublicaComando()
-    {
-        var bus = new Mock<ISagaCommandBus>();
-        var handler = new EnviarIniciarExecucaoHandler(bus.Object);
-
-        var idOrdemServico = Guid.NewGuid();
-        await handler.Handle(new OrdemServicoStatusAlteradoDomainEvent(idOrdemServico, StatusOrdemServico.EmExecucao), CancellationToken.None);
-
-        bus.Verify(b => b.EnviarIniciarExecucao(idOrdemServico, It.IsAny<CancellationToken>()), Times.Once);
-    }
-
-    [Theory]
-    [InlineData(StatusOrdemServico.Recebida)]
-    [InlineData(StatusOrdemServico.EmDiagnostico)]
-    [InlineData(StatusOrdemServico.AguardandoAprovacao)]
-    [InlineData(StatusOrdemServico.Finalizada)]
-    [InlineData(StatusOrdemServico.Entregue)]
-    [InlineData(StatusOrdemServico.Cancelada)]
-    public async Task EnviarIniciarExecucaoHandler_QuandoOutroStatus_NaoPublicaComando(StatusOrdemServico status)
-    {
-        var bus = new Mock<ISagaCommandBus>();
-        var handler = new EnviarIniciarExecucaoHandler(bus.Object);
-
-        await handler.Handle(new OrdemServicoStatusAlteradoDomainEvent(Guid.NewGuid(), status), CancellationToken.None);
-
-        bus.Verify(b => b.EnviarIniciarExecucao(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 }

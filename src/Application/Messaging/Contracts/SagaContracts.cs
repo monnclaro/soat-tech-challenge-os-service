@@ -31,12 +31,6 @@ public record ItemProdutoDiagnosticado(Guid IdProduto, string NomeProduto, decim
 
 #endregion
 
-#region Comandos — OS Service -> Execução Service
-
-public record IniciarExecucao(Guid IdOrdemServico) : ISagaCommand;
-
-#endregion
-
 #region Comandos — OS Service -> Billing Service
 
 public record GerarOrcamento(
@@ -62,6 +56,13 @@ public record DiagnosticoFinalizado(
     IReadOnlyList<ItemProdutoDiagnosticado> Produtos) : ISagaEvent;
 
 public record DiagnosticoFalhou(Guid IdOrdemServico, string Motivo) : ISagaEvent;
+
+// Confirma que o primeiro serviço entrou em execução de verdade (ação manual,
+// item a item) — só então a OS passa de AguardandoExecucao para EmExecucao.
+// Mesmo padrão reativo do DiagnosticoIniciado acima: nenhum comando
+// automático dispara a execução, ela é sempre iniciada manualmente lá.
+public record ExecucaoIniciada(Guid IdOrdemServico) : ISagaEvent;
+
 public record ExecucaoFinalizada(Guid IdOrdemServico) : ISagaEvent;
 
 // Compensação: falha durante a execução (ex.: peça indisponível), depois do
