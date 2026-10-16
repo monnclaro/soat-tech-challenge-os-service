@@ -130,7 +130,7 @@ sequenceDiagram
                 Note over OS: Compensação
                 OS->>OS: Cancelar() → Cancelada
             end
-        else Mercado Pago falha (rede, API fora do ar)
+        else Mercado Pago continua falhando após o Billing Service retentar (rede, API fora do ar)
             Bill-->>OS: OrcamentoFalhou (evento)
             Note over OS: Compensação
             OS->>OS: Cancelar() → Cancelada

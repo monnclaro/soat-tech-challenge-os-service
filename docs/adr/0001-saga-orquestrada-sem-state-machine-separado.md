@@ -35,7 +35,7 @@ Todo passo de negócio da saga tem um caminho de compensação — não só o de
 | Evento recebido | Origem | Quando acontece |
 |---|---|---|
 | `DiagnosticoFalhou` | Execução Service | Veículo não atendível, ainda na fase de diagnóstico (`Cancelar(motivo)` chamado enquanto `AguardandoDiagnostico`/`EmDiagnostico`) |
-| `OrcamentoFalhou` | Billing Service | A chamada ao Mercado Pago para gerar a preferência de pagamento lança exceção (rede, API fora do ar, credenciais inválidas) |
+| `OrcamentoFalhou` | Billing Service | A chamada ao Mercado Pago para gerar a preferência de pagamento continua falhando após 3 retentativas automáticas (rede, API fora do ar, credenciais inválidas) — nem toda falha vira compensação de cara: uma falha transitória se resolve sozinha numa das retentativas antes de chegar aqui (ver `docs/architecture.md` do Billing Service) |
 | `PagamentoRecusado` | Billing Service | Webhook do Mercado Pago confirma que o pagamento foi recusado |
 | `ExecucaoFalhou` | Execução Service | Falha depois do diagnóstico já finalizado (ex.: peça indisponível) — `Cancelar(motivo)` chamado em `DiagnosticoFinalizado`/`EmExecucao` |
 
