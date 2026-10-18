@@ -84,14 +84,12 @@ jobs:
 
   # Sobe os 3 microsserviços de verdade (containers reais a partir dos próprios
   # Dockerfiles, Postgres x2/Mongo/RabbitMQ via Testcontainers) e roda o cenário de BDD
-  # que atravessa a saga completa entre eles (ver tests/Tests.Integration). Só no merge
-  # pra main: build+start de 3 imagens .NET é lento demais pra rodar em todo PR, e o
-  # objetivo aqui é validar a integração real antes do deploy, não dar feedback rápido
-  # de PR (isso já é papel do job build-test de cada repo).
+  # que atravessa a saga completa entre eles (ver tests/Tests.Integration). Roda em PR
+  # (feedback antes do merge) e no push pra main (gate antes do deploy).
   integration-test-saga:
     name: Teste de integração (saga completa, 3 serviços)
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref_name == 'main'
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_name == 'main')
     steps:
       - uses: actions/checkout@v4.2.2
 
