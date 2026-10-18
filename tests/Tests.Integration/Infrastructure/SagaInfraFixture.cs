@@ -26,6 +26,13 @@ public static class SagaInfraFixture
     private const string MongoPassword = "soat-teste-integracao";
     private const ushort ApiPort = 8080;
 
+    // Build de 3 imagens .NET do zero + start de 7 containers não deveria passar disso
+    // nem no CI mais lento/sem cache de camada do Docker (localmente fica em ~2 min a
+    // frio). Sem isso, um container que nunca fica saudável (ex.: um dos 3 serviços
+    // crashando silenciosamente) prende o job inteiro até o timeout do GitHub Actions
+    // (6h por padrão) em vez de falhar rápido com um erro claro.
+    private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(10);
+
     private static INetwork? _network;
     private static PostgreSqlContainer? _osPostgres;
     private static PostgreSqlContainer? _billingPostgres;
@@ -41,8 +48,11 @@ public static class SagaInfraFixture
 
     public static async Task StartAsync()
     {
+        using var cts = new CancellationTokenSource(StartupTimeout);
+        var ct = cts.Token;
+
         _network = new NetworkBuilder().Build();
-        await _network.CreateAsync();
+        await _network.CreateAsync(ct);
 
         _osPostgres = BuildPostgres("os-postgres", "soat_os");
         _billingPostgres = BuildPostgres("billing-postgres", "soat_billing");
@@ -71,14 +81,14 @@ public static class SagaInfraFixture
             .Build();
 
         var infraReady = Task.WhenAll(
-            _osPostgres.StartAsync(),
-            _billingPostgres.StartAsync(),
-            _executionMongo.StartAsync(),
-            _rabbitMq.StartAsync());
+            _osPostgres.StartAsync(ct),
+            _billingPostgres.StartAsync(ct),
+            _executionMongo.StartAsync(ct),
+            _rabbitMq.StartAsync(ct));
 
-        var osImageTask = BuildServiceImage(RepoRoot(), "soat-os-service-it");
-        var billingImageTask = BuildServiceImage(SiblingRepoRoot("soat-tech-challenge-billing-service"), "soat-billing-service-it");
-        var executionImageTask = BuildServiceImage(SiblingRepoRoot("soat-tech-challenge-execution-service"), "soat-execution-service-it");
+        var osImageTask = BuildServiceImage(RepoRoot(), "soat-os-service-it", ct);
+        var billingImageTask = BuildServiceImage(SiblingRepoRoot("soat-tech-challenge-billing-service"), "soat-billing-service-it", ct);
+        var executionImageTask = BuildServiceImage(SiblingRepoRoot("soat-tech-challenge-execution-service"), "soat-execution-service-it", ct);
 
         await Task.WhenAll(infraReady, osImageTask, billingImageTask, executionImageTask);
 
@@ -118,7 +128,7 @@ public static class SagaInfraFixture
             ["JwtSettings__Secret"] = JwtSecret,
         });
 
-        await Task.WhenAll(_osService.StartAsync(), _billingService.StartAsync(), _executionService.StartAsync());
+        await Task.WhenAll(_osService.StartAsync(ct), _billingService.StartAsync(ct), _executionService.StartAsync(ct));
 
         OsServiceUrl = $"http://{_osService.Hostname}:{_osService.GetMappedPublicPort(ApiPort)}";
         BillingServiceUrl = $"http://{_billingService.Hostname}:{_billingService.GetMappedPublicPort(ApiPort)}";
@@ -155,7 +165,7 @@ public static class SagaInfraFixture
             .WithNetworkAliases(alias)
             .Build();
 
-    private static async Task<IFutureDockerImage> BuildServiceImage(string contextDirectory, string imageName)
+    private static async Task<IFutureDockerImage> BuildServiceImage(string contextDirectory, string imageName, CancellationToken ct)
     {
         var image = new ImageFromDockerfileBuilder()
             .WithName(imageName)
@@ -164,7 +174,7 @@ public static class SagaInfraFixture
             .WithDeleteIfExists(true)
             .Build();
 
-        await image.CreateAsync();
+        await image.CreateAsync(ct);
         return image;
     }
 
