@@ -3,7 +3,6 @@ using Application.OrdensServico.UseCases.Finalizar;
 using Application.OrdensServico.UseCases.IniciarDiagnostico;
 using Application.OrdensServico.UseCases.IniciarExecucao;
 using Application.OrdensServico.UseCases.RegistrarDiagnostico;
-using Application.OrdensServico.UseCases.RegistrarLinkPagamento;
 using Application.Produtos.UseCases.DecrementarEstoque;
 using FluentAssertions;
 
@@ -25,19 +24,6 @@ public class OutputPortsTests
         acao.Should().NotThrow();
     }
 
-    [Fact]
-    public void RegistrarLinkPagamentoOutputPort_MapeiaTodosOsCasos()
-    {
-        var outputPort = new RegistrarLinkPagamentoOutputPort();
-
-        var acao = () =>
-        {
-            outputPort.NaoEncontrado();
-            outputPort.Ok();
-        };
-
-        acao.Should().NotThrow();
-    }
 
     [Fact]
     public void IniciarDiagnosticoOutputPort_MapeiaTodosOsCasos()

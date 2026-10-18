@@ -23,7 +23,6 @@ public class OrdemServico : Entity
     public DateTime? DataFinalizacao { get; private set; }
     public StatusOrdemServico Status { get; private set; }
     public decimal ValorTotal { get; private set; }
-    public string? LinkPagamento { get; private set; }
     public List<OrdemServicoServico> Servicos { get; init; } = new();
     public List<OrdemServicoProduto> Produtos { get; init; } = new();
 
@@ -73,24 +72,6 @@ public class OrdemServico : Entity
 
         Raise(new OrdemServicoStatusAlteradoDomainEvent(Id, Status));
         Raise(new DiagnosticoRegistradoDomainEvent(Id, Servicos, Produtos, ValorTotal));
-    }
-
-    // Consumido a partir do evento OrcamentoGerado (Billing Service) — guarda o link de
-    // pagamento (Mercado Pago) pra ficar disponível por aqui, já que o Billing Service não
-    // persiste o link de volta em lugar nenhum consultável depois da criação.
-    public void RegistrarLinkPagamento(string linkPagamento)
-    {
-        if (Status != StatusOrdemServico.AguardandoAprovacao)
-        {
-            throw new DomainException("Só é possível registrar o link de pagamento enquanto a OS estiver aguardando aprovação.");
-        }
-
-        if (string.IsNullOrWhiteSpace(linkPagamento))
-        {
-            throw new DomainException("O link de pagamento é obrigatório.");
-        }
-
-        LinkPagamento = linkPagamento;
     }
 
     // Consumido a partir do evento PagamentoAprovado (Billing Service). Não avança

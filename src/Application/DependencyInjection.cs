@@ -5,7 +5,6 @@ using Application.OrdensServico.UseCases.Finalizar;
 using Application.OrdensServico.UseCases.IniciarDiagnostico;
 using Application.OrdensServico.UseCases.IniciarExecucao;
 using Application.OrdensServico.UseCases.RegistrarDiagnostico;
-using Application.OrdensServico.UseCases.RegistrarLinkPagamento;
 using Application.Produtos.UseCases.DecrementarEstoque;
 using Microsoft.Extensions.DependencyInjection;
 using SharedKernel.Interfaces;
@@ -22,7 +21,6 @@ public static class DependencyInjection
         // internamente (domain event handler / consumer RabbitMQ), nunca por um
         // controller HTTP — por isso são registrados aqui, não descobertos por scan.
         services.AddScoped<IDecrementarEstoqueOutputPort, DecrementarEstoqueOutputPort>();
-        services.AddScoped<IRegistrarLinkPagamentoOutputPort, RegistrarLinkPagamentoOutputPort>();
         services.AddScoped<IRegistrarDiagnosticoOutputPort, RegistrarDiagnosticoOutputPort>();
         services.AddScoped<IIniciarDiagnosticoOutputPort, IniciarDiagnosticoOutputPort>();
         services.AddScoped<IIniciarExecucaoOutputPort, IniciarExecucaoOutputPort>();

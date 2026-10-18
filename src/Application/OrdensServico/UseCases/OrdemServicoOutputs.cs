@@ -14,7 +14,6 @@ public record OrdemServicoOutput(
     DateTime? DataFinalizacao,
     string Status,
     decimal ValorTotal,
-    string? LinkPagamento,
     List<OrdemServicoServicoOutput> Servicos,
     List<OrdemServicoProdutoOutput> Produtos);
 

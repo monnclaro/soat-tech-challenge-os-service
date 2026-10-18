@@ -4,7 +4,7 @@ namespace Application.OrdensServico.UseCases.AprovarPagamento;
 // RabbitMQ/MassTransit (PagamentoAprovadoConsumer, que monta seu próprio
 // CapturingOutputPort), nunca por um controller HTTP. Registrada explicitamente
 // em Application.DependencyInjection, já que não há UI alguma a resolver aqui —
-// mesmo padrão de DecrementarEstoqueOutputPort/RegistrarLinkPagamentoOutputPort.
+// mesmo padrão de DecrementarEstoqueOutputPort/IniciarDiagnosticoOutputPort.
 internal sealed class AprovarPagamentoOutputPort : IAprovarPagamentoOutputPort
 {
     public void NaoEncontrado()
