@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Database.Migrations
 {
     [DbContext(typeof(OsServiceDbContext))]
-    [ExcludeFromCodeCoverage] // Snapshot auto-gerado pelo EF Core — sem lógica de negócio.
+    [ExcludeFromCodeCoverage] // dotnet ef regenera este arquivo do zero a cada migration — sem lógica de negócio.
     partial class OsServiceDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
@@ -163,11 +163,6 @@ namespace Infrastructure.Database.Migrations
                     b.Property<Guid>("IdVeiculo")
                         .HasColumnType("uuid")
                         .HasColumnName("id_veiculo");
-
-                    b.Property<string>("LinkPagamento")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)")
-                        .HasColumnName("link_pagamento");
 
                     b.Property<int>("Status")
                         .HasColumnType("integer")

@@ -5,7 +5,6 @@ using Application.OrdensServico.UseCases.IniciarDiagnostico;
 using Application.OrdensServico.UseCases.IniciarExecucao;
 using Application.OrdensServico.UseCases.Inserir;
 using Application.OrdensServico.UseCases.RegistrarDiagnostico;
-using Application.OrdensServico.UseCases.RegistrarLinkPagamento;
 using Domain.Clientes;
 using Domain.Clientes.Gateways;
 using Domain.Clientes.ValueObjects;
@@ -135,42 +134,6 @@ public class SagaUseCasesTests
 
         outputPort.Verify(p => p.Ok(), Times.Once);
         os.ValorTotal.Should().Be(120m);
-    }
-
-    [Fact]
-    public async Task RegistrarLinkPagamento_QuandoEncontrada_AtualizaEChamaOk()
-    {
-        var os = CriarOrdemServico(o =>
-        {
-            o.IniciarDiagnostico();
-            o.RegistrarDiagnostico([new Domain.OrdensServico.Servicos.OrdemServicoServico(o.Id, Guid.NewGuid(), "Troca de óleo", 120m)], []);
-        });
-
-        var gateway = new Mock<IOrdemServicoGateway>();
-        gateway.Setup(g => g.BuscarPorId(os.Id, It.IsAny<CancellationToken>())).ReturnsAsync(os);
-
-        var outputPort = new Mock<IRegistrarLinkPagamentoOutputPort>();
-        var useCase = new RegistrarLinkPagamentoUseCase(gateway.Object, outputPort.Object);
-
-        await useCase.Execute(new RegistrarLinkPagamentoInput(os.Id, "https://mercadopago.com/checkout/preference-123"));
-
-        gateway.Verify(g => g.Atualizar(os, It.IsAny<CancellationToken>()), Times.Once);
-        outputPort.Verify(p => p.Ok(), Times.Once);
-        os.LinkPagamento.Should().Be("https://mercadopago.com/checkout/preference-123");
-    }
-
-    [Fact]
-    public async Task RegistrarLinkPagamento_QuandoNaoEncontrada_ChamaNaoEncontrado()
-    {
-        var gateway = new Mock<IOrdemServicoGateway>();
-        gateway.Setup(g => g.BuscarPorId(It.IsAny<Guid>(), It.IsAny<CancellationToken>())).ReturnsAsync((OrdemServico?)null);
-
-        var outputPort = new Mock<IRegistrarLinkPagamentoOutputPort>();
-        var useCase = new RegistrarLinkPagamentoUseCase(gateway.Object, outputPort.Object);
-
-        await useCase.Execute(new RegistrarLinkPagamentoInput(Guid.NewGuid(), "https://mercadopago.com/checkout/preference-123"));
-
-        outputPort.Verify(p => p.NaoEncontrado(), Times.Once);
     }
 
     [Fact]

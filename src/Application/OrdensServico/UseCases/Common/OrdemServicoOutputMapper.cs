@@ -21,7 +21,6 @@ public static class OrdemServicoOutputMapper
             os.DataFinalizacao,
             os.Status.ToString(),
             os.ValorTotal,
-            os.LinkPagamento,
             os.Servicos.Select(s => new OrdemServicoServicoOutput(s.Id, s.IdServico, s.NomeServico, s.Valor)).ToList(),
             os.Produtos.Select(p => new OrdemServicoProdutoOutput(p.Id, p.IdProduto, p.NomeProduto, p.ValorUnitario, p.Quantidade)).ToList());
 }

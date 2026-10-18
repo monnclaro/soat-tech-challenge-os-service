@@ -125,36 +125,6 @@ public class OrdemServicoTests
     }
 
     [Fact]
-    public void RegistrarLinkPagamento_QuandoAguardandoAprovacao_GuardaLink()
-    {
-        var os = CriarOrdemServicoAguardandoAprovacao();
-
-        os.RegistrarLinkPagamento("https://mercadopago.com/checkout/preference-123");
-
-        os.LinkPagamento.Should().Be("https://mercadopago.com/checkout/preference-123");
-    }
-
-    [Fact]
-    public void RegistrarLinkPagamento_QuandoNaoAguardandoAprovacao_LancaExcecao()
-    {
-        var os = CriarOrdemServicoRecebida();
-
-        var act = () => os.RegistrarLinkPagamento("https://mercadopago.com/checkout/preference-123");
-
-        act.Should().Throw<DomainException>();
-    }
-
-    [Fact]
-    public void RegistrarLinkPagamento_SemLink_LancaExcecao()
-    {
-        var os = CriarOrdemServicoAguardandoAprovacao();
-
-        var act = () => os.RegistrarLinkPagamento("");
-
-        act.Should().Throw<DomainException>();
-    }
-
-    [Fact]
     public void AprovarPagamento_QuandoAguardandoAprovacao_MudaParaAguardandoExecucaoSemIniciarExecucao()
     {
         var os = CriarOrdemServicoAguardandoAprovacao();
