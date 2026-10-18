@@ -82,10 +82,48 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: dotnet-sonarscanner end /d:sonar.token="$SONAR_TOKEN"
 
+  # Sobe os 3 microsserviços de verdade (containers reais a partir dos próprios
+  # Dockerfiles, Postgres x2/Mongo/RabbitMQ via Testcontainers) e roda o cenário de BDD
+  # que atravessa a saga completa entre eles (ver tests/Tests.Integration). Só no merge
+  # pra main: build+start de 3 imagens .NET é lento demais pra rodar em todo PR, e o
+  # objetivo aqui é validar a integração real antes do deploy, não dar feedback rápido
+  # de PR (isso já é papel do job build-test de cada repo).
+  integration-test-saga:
+    name: Teste de integração (saga completa, 3 serviços)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref_name == 'main'
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: monnclaro/soat-tech-challenge-billing-service
+          ref: main
+          path: ../soat-tech-challenge-billing-service
+
+      - uses: actions/checkout@v4.2.2
+        with:
+          repository: monnclaro/soat-tech-challenge-execution-service
+          ref: main
+          path: ../soat-tech-challenge-execution-service
+
+      - uses: actions/setup-dotnet@v4.3.1
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Cache pacotes NuGet
+        uses: actions/cache@v4.2.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-integration-${{ hashFiles('tests/Tests.Integration/*.csproj') }}
+
+      - name: Testes de integração (sobe os 3 serviços via Docker)
+        run: dotnet test tests/Tests.Integration --configuration Release --verbosity normal
+
   deploy:
     name: Build image & Deploy
     runs-on: ubuntu-latest
-    needs: build-test
+    needs: [build-test, integration-test-saga]
     if: github.event_name == 'push' && github.ref_name == 'main'
     environment: producao
     env:
