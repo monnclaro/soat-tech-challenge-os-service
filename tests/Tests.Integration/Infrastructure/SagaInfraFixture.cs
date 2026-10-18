@@ -192,9 +192,22 @@ public static class SagaInfraFixture
     private static string RepoRoot([CallerFilePath] string sourceFile = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(sourceFile)!, "..", "..", ".."));
 
-    // Repos irmãos (Billing/Execução), checados out como diretórios irmãos deste repo —
-    // tanto localmente (mesma pasta "Tech Challenge - FIAP") quanto no CI (ver checkout
-    // adicional com "path: ../<repo>" em ci-cd.yml).
-    private static string SiblingRepoRoot(string repoName) =>
-        Path.GetFullPath(Path.Combine(RepoRoot(), "..", repoName));
+    // Repos irmãos (Billing/Execução). Localmente, ficam na mesma pasta "Tech Challenge -
+    // FIAP" (um nível acima deste repo) — layout padrão de quem clonou todos os repos
+    // lado a lado. No CI, "actions/checkout" recusa qualquer "path" que escape do próprio
+    // diretório do repo principal (não dá pra checkar fora dele nem indiretamente, mesmo
+    // ainda dentro da pasta "work/<repo>" do runner) — por isso lá eles são checked out
+    // numa subpasta (".sibling-repos/<repo>") e a env var SOAT_SIBLING_REPOS_DIR (setada
+    // só no job de CI, ver ci-cd.yml) aponta pra ela.
+    private static string SiblingRepoRoot(string repoName)
+    {
+        var baseDir = Environment.GetEnvironmentVariable("SOAT_SIBLING_REPOS_DIR");
+
+        if (string.IsNullOrEmpty(baseDir))
+        {
+            baseDir = Path.Combine(RepoRoot(), "..");
+        }
+
+        return Path.GetFullPath(Path.Combine(baseDir, repoName));
+    }
 }

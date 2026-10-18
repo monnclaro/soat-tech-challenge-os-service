@@ -95,17 +95,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4.2.2
 
+      # actions/checkout recusa qualquer "path" que escape do diretório do repo
+      # principal (nem ".." pra um diretório irmão ainda dentro de "work/<repo>" é
+      # aceito) — por isso os repos irmãos vão numa subpasta daqui, não um nível acima.
+      # SOAT_SIBLING_REPOS_DIR (no step de teste abaixo) aponta pra ela.
       - uses: actions/checkout@v4.2.2
         with:
           repository: monnclaro/soat-tech-challenge-billing-service
           ref: main
-          path: ../soat-tech-challenge-billing-service
+          path: .sibling-repos/soat-tech-challenge-billing-service
 
       - uses: actions/checkout@v4.2.2
         with:
           repository: monnclaro/soat-tech-challenge-execution-service
           ref: main
-          path: ../soat-tech-challenge-execution-service
+          path: .sibling-repos/soat-tech-challenge-execution-service
 
       - uses: actions/setup-dotnet@v4.3.1
         with:
@@ -118,6 +122,8 @@ jobs:
           key: nuget-integration-${{ hashFiles('tests/Tests.Integration/*.csproj') }}
 
       - name: Testes de integração (sobe os 3 serviços via Docker)
+        env:
+          SOAT_SIBLING_REPOS_DIR: ${{ github.workspace }}/.sibling-repos
         run: dotnet test tests/Tests.Integration --configuration Release --verbosity normal
 
   deploy:
