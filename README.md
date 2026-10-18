@@ -107,7 +107,7 @@ BDD (Reqnroll) do fluxo completo da saga em [`tests/Tests/Features/SagaOrdemServ
 
 [`tests/Tests.Integration`](tests/Tests.Integration) sobe os 3 microsserviços de verdade (imagens construídas a partir dos próprios Dockerfiles, via Testcontainers) + Postgres x2/MongoDB/RabbitMQ reais, e roda o mesmo cenário feliz da saga ponta a ponta de verdade (HTTP + RabbitMQ reais entre OS Service, Billing Service e Execução Service) — ver [`SagaCompletaReal.feature`](tests/Tests.Integration/Features/SagaCompletaReal.feature). Usa [`MercadoPagoGatewayFake`](../soat-tech-challenge-billing-service/src/Infrastructure/MercadoPago/MercadoPagoGatewayFake.cs) no Billing Service (`MercadoPago:UseFake=true`) no lugar da API real do Mercado Pago, já que não há credencial de sandbox disponível em CI.
 
-Não faz parte do `dotnet test` da build principal (lento: builda 3 imagens .NET do zero) — roda num job dedicado `integration-test-saga` do CI, **em Pull Requests e no push na `main`** (ver `.github/workflows/ci-cd.yml`), também como gate antes do deploy. Pra rodar localmente é preciso ter os repos do Billing Service e do Execução Service clonados como pastas irmãs deste repo, e o Docker Desktop (ou equivalente) rodando:
+Não faz parte do `dotnet test` da build principal nem roda no CI — os runners padrão do GitHub Actions (2 vCPUs) não têm CPU suficiente pra construir as 3 imagens .NET e subir os 3 serviços sem ficar lento/instável de forma pouco previsível, mesmo rodando tudo em série. É só pra rodar localmente: é preciso ter os repos do Billing Service e do Execução Service clonados como pastas irmãs deste repo, e o Docker Desktop (ou equivalente) rodando:
 
 ```bash
 dotnet test tests/Tests.Integration

@@ -134,7 +134,12 @@ public static class SagaInfraFixture
             ["JwtSettings__Secret"] = JwtSecret,
         });
 
-        await Task.WhenAll(_osService.StartAsync(ct), _billingService.StartAsync(ct), _executionService.StartAsync(ct));
+        // Mesmo motivo do build sequencial das imagens: cada start faz migração de banco
+        // (EF Core) + conexão com o RabbitMQ — 3 ao mesmo tempo também disputa os 2 vCPUs
+        // do runner do GitHub Actions.
+        await _osService.StartAsync(ct);
+        await _billingService.StartAsync(ct);
+        await _executionService.StartAsync(ct);
 
         OsServiceUrl = $"http://{_osService.Hostname}:{_osService.GetMappedPublicPort(ApiPort)}";
         BillingServiceUrl = $"http://{_billingService.Hostname}:{_billingService.GetMappedPublicPort(ApiPort)}";
@@ -208,21 +213,12 @@ public static class SagaInfraFixture
     private static string RepoRoot([CallerFilePath] string sourceFile = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(sourceFile)!, "..", "..", ".."));
 
-    // Repos irmãos (Billing/Execução). Localmente, ficam na mesma pasta "Tech Challenge -
-    // FIAP" (um nível acima deste repo) — layout padrão de quem clonou todos os repos
-    // lado a lado. No CI, "actions/checkout" recusa qualquer "path" que escape do próprio
-    // diretório do repo principal (não dá pra checkar fora dele nem indiretamente, mesmo
-    // ainda dentro da pasta "work/<repo>" do runner) — por isso lá eles são checked out
-    // numa subpasta (".sibling-repos/<repo>") e a env var SOAT_SIBLING_REPOS_DIR (setada
-    // só no job de CI, ver ci-cd.yml) aponta pra ela.
+    // Repos irmãos (Billing/Execução) — só uso local (ver README): ficam na mesma pasta
+    // "Tech Challenge - FIAP" (um nível acima deste repo), layout padrão de quem clonou
+    // todos os repos lado a lado.
     private static string SiblingRepoRoot(string repoName)
     {
-        var baseDir = Environment.GetEnvironmentVariable("SOAT_SIBLING_REPOS_DIR");
-
-        if (string.IsNullOrEmpty(baseDir))
-        {
-            baseDir = Path.Combine(RepoRoot(), "..");
-        }
+        var baseDir = Path.Combine(RepoRoot(), "..");
 
         return Path.GetFullPath(Path.Combine(baseDir, repoName));
     }
