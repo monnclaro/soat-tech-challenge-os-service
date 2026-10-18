@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- Testes lentos (containers reais via Docker) e fora do gate de cobertura de
+         80% da build principal — rodam só no job dedicado do CI (push na main),
+         nunca junto com "dotnet test" de tests/Tests (ver ci-cd.yml). -->
+    <CollectCoverage>false</CollectCoverage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit" Version="2.9.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Sobe os 3 microsserviços reais (imagens construídas a partir dos próprios
+         Dockerfiles) + Postgres x2/Mongo/RabbitMQ via Docker — ver
+         Infrastructure/SagaInfraFixture.cs. -->
+    <PackageReference Include="Testcontainers" Version="3.10.0" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="3.10.0" />
+    <PackageReference Include="Testcontainers.RabbitMq" Version="3.10.0" />
+    <PackageReference Include="Testcontainers.MongoDb" Version="3.10.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" Version="6.12.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- BDD do fluxo completo da saga atravessando os 3 microsserviços de verdade
+         (ver Features/SagaCompletaReal.feature) — complementa o BDD em processo
+         (sem rede/containers) que já existe em tests/Tests/Features. -->
+    <PackageReference Include="Reqnroll" Version="2.4.1" />
+    <PackageReference Include="Reqnroll.xUnit" Version="2.4.1" />
+  </ItemGroup>
+
+</Project>
