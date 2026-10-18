@@ -86,13 +86,19 @@ public static class SagaInfraFixture
             _executionMongo.StartAsync(ct),
             _rabbitMq.StartAsync(ct));
 
-        var osImageTask = BuildServiceImage(RepoRoot(), "soat-os-service-it", ct);
-        var billingImageTask = BuildServiceImage(SiblingRepoRoot("soat-tech-challenge-billing-service"), "soat-billing-service-it", ct);
-        var executionImageTask = BuildServiceImage(SiblingRepoRoot("soat-tech-challenge-execution-service"), "soat-execution-service-it", ct);
+        // As 3 imagens são construídas em série, não em paralelo: cada build roda
+        // "dotnet restore+build+publish" dentro do container, pesado de CPU/memória — em
+        // paralelo isso afoga os 2 vCPUs de um runner do GitHub Actions (troca de contexto
+        // e paginação de memória), o que na prática ficou MUITO mais lento que 3x um build
+        // sequencial (observado: ~16 min no CI vs ~2 min localmente, onde há CPU de sobra
+        // pra paralelizar de verdade). Os containers de infra (leves) continuam em paralelo.
+        var osImage = await BuildServiceImage(RepoRoot(), "soat-os-service-it", ct);
+        var billingImage = await BuildServiceImage(SiblingRepoRoot("soat-tech-challenge-billing-service"), "soat-billing-service-it", ct);
+        var executionImage = await BuildServiceImage(SiblingRepoRoot("soat-tech-challenge-execution-service"), "soat-execution-service-it", ct);
 
-        await Task.WhenAll(infraReady, osImageTask, billingImageTask, executionImageTask);
+        await infraReady;
 
-        _osService = BuildServiceContainer(await osImageTask, "os-service", new()
+        _osService = BuildServiceContainer(osImage, "os-service", new()
         {
             ["ConnectionStrings__Default"] = "Host=os-postgres;Port=5432;Database=soat_os;Username=postgres;Password=postgres",
             ["RabbitMq__Host"] = "rabbitmq",
@@ -103,7 +109,7 @@ public static class SagaInfraFixture
             ["JwtSettings__ExpirationHours"] = "2",
         });
 
-        _billingService = BuildServiceContainer(await billingImageTask, "billing-service", new()
+        _billingService = BuildServiceContainer(billingImage, "billing-service", new()
         {
             ["ConnectionStrings__Default"] = "Host=billing-postgres;Port=5432;Database=soat_billing;Username=postgres;Password=postgres",
             ["RabbitMq__Host"] = "rabbitmq",
@@ -117,7 +123,7 @@ public static class SagaInfraFixture
             ["MercadoPago__UseFake"] = "true",
         });
 
-        _executionService = BuildServiceContainer(await executionImageTask, "execution-service", new()
+        _executionService = BuildServiceContainer(executionImage, "execution-service", new()
         {
             ["MongoSettings__ConnectionString"] = $"mongodb://{MongoUsername}:{MongoPassword}@execution-mongo:27017/?authSource=admin",
             ["MongoSettings__Database"] = "soat_execucao",
