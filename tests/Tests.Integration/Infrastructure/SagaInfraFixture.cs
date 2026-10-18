@@ -26,6 +26,13 @@ public static class SagaInfraFixture
     private const string MongoPassword = "soat-teste-integracao";
     private const ushort ApiPort = 8080;
 
+    // Build de 3 imagens .NET do zero + start de 7 containers não deveria passar disso
+    // nem no CI mais lento/sem cache de camada do Docker (localmente fica em ~2 min a
+    // frio). Sem isso, um container que nunca fica saudável (ex.: um dos 3 serviços
+    // crashando silenciosamente) prende o job inteiro até o timeout do GitHub Actions
+    // (6h por padrão) em vez de falhar rápido com um erro claro.
+    private static readonly TimeSpan StartupTimeout = TimeSpan.FromMinutes(10);
+
     private static INetwork? _network;
     private static PostgreSqlContainer? _osPostgres;
     private static PostgreSqlContainer? _billingPostgres;
@@ -41,8 +48,11 @@ public static class SagaInfraFixture
 
     public static async Task StartAsync()
     {
+        using var cts = new CancellationTokenSource(StartupTimeout);
+        var ct = cts.Token;
+
         _network = new NetworkBuilder().Build();
-        await _network.CreateAsync();
+        await _network.CreateAsync(ct);
 
         _osPostgres = BuildPostgres("os-postgres", "soat_os");
         _billingPostgres = BuildPostgres("billing-postgres", "soat_billing");
@@ -71,18 +81,24 @@ public static class SagaInfraFixture
             .Build();
 
         var infraReady = Task.WhenAll(
-            _osPostgres.StartAsync(),
-            _billingPostgres.StartAsync(),
-            _executionMongo.StartAsync(),
-            _rabbitMq.StartAsync());
+            _osPostgres.StartAsync(ct),
+            _billingPostgres.StartAsync(ct),
+            _executionMongo.StartAsync(ct),
+            _rabbitMq.StartAsync(ct));
 
-        var osImageTask = BuildServiceImage(RepoRoot(), "soat-os-service-it");
-        var billingImageTask = BuildServiceImage(SiblingRepoRoot("soat-tech-challenge-billing-service"), "soat-billing-service-it");
-        var executionImageTask = BuildServiceImage(SiblingRepoRoot("soat-tech-challenge-execution-service"), "soat-execution-service-it");
+        // As 3 imagens são construídas em série, não em paralelo: cada build roda
+        // "dotnet restore+build+publish" dentro do container, pesado de CPU/memória — em
+        // paralelo isso afoga os 2 vCPUs de um runner do GitHub Actions (troca de contexto
+        // e paginação de memória), o que na prática ficou MUITO mais lento que 3x um build
+        // sequencial (observado: ~16 min no CI vs ~2 min localmente, onde há CPU de sobra
+        // pra paralelizar de verdade). Os containers de infra (leves) continuam em paralelo.
+        var osImage = await BuildServiceImage(RepoRoot(), "soat-os-service-it", ct);
+        var billingImage = await BuildServiceImage(SiblingRepoRoot("soat-tech-challenge-billing-service"), "soat-billing-service-it", ct);
+        var executionImage = await BuildServiceImage(SiblingRepoRoot("soat-tech-challenge-execution-service"), "soat-execution-service-it", ct);
 
-        await Task.WhenAll(infraReady, osImageTask, billingImageTask, executionImageTask);
+        await infraReady;
 
-        _osService = BuildServiceContainer(await osImageTask, "os-service", new()
+        _osService = BuildServiceContainer(osImage, "os-service", new()
         {
             ["ConnectionStrings__Default"] = "Host=os-postgres;Port=5432;Database=soat_os;Username=postgres;Password=postgres",
             ["RabbitMq__Host"] = "rabbitmq",
@@ -93,7 +109,7 @@ public static class SagaInfraFixture
             ["JwtSettings__ExpirationHours"] = "2",
         });
 
-        _billingService = BuildServiceContainer(await billingImageTask, "billing-service", new()
+        _billingService = BuildServiceContainer(billingImage, "billing-service", new()
         {
             ["ConnectionStrings__Default"] = "Host=billing-postgres;Port=5432;Database=soat_billing;Username=postgres;Password=postgres",
             ["RabbitMq__Host"] = "rabbitmq",
@@ -107,7 +123,7 @@ public static class SagaInfraFixture
             ["MercadoPago__UseFake"] = "true",
         });
 
-        _executionService = BuildServiceContainer(await executionImageTask, "execution-service", new()
+        _executionService = BuildServiceContainer(executionImage, "execution-service", new()
         {
             ["MongoSettings__ConnectionString"] = $"mongodb://{MongoUsername}:{MongoPassword}@execution-mongo:27017/?authSource=admin",
             ["MongoSettings__Database"] = "soat_execucao",
@@ -118,7 +134,12 @@ public static class SagaInfraFixture
             ["JwtSettings__Secret"] = JwtSecret,
         });
 
-        await Task.WhenAll(_osService.StartAsync(), _billingService.StartAsync(), _executionService.StartAsync());
+        // Mesmo motivo do build sequencial das imagens: cada start faz migração de banco
+        // (EF Core) + conexão com o RabbitMQ — 3 ao mesmo tempo também disputa os 2 vCPUs
+        // do runner do GitHub Actions.
+        await _osService.StartAsync(ct);
+        await _billingService.StartAsync(ct);
+        await _executionService.StartAsync(ct);
 
         OsServiceUrl = $"http://{_osService.Hostname}:{_osService.GetMappedPublicPort(ApiPort)}";
         BillingServiceUrl = $"http://{_billingService.Hostname}:{_billingService.GetMappedPublicPort(ApiPort)}";
@@ -155,7 +176,7 @@ public static class SagaInfraFixture
             .WithNetworkAliases(alias)
             .Build();
 
-    private static async Task<IFutureDockerImage> BuildServiceImage(string contextDirectory, string imageName)
+    private static async Task<IFutureDockerImage> BuildServiceImage(string contextDirectory, string imageName, CancellationToken ct)
     {
         var image = new ImageFromDockerfileBuilder()
             .WithName(imageName)
@@ -164,7 +185,7 @@ public static class SagaInfraFixture
             .WithDeleteIfExists(true)
             .Build();
 
-        await image.CreateAsync();
+        await image.CreateAsync(ct);
         return image;
     }
 
@@ -192,21 +213,12 @@ public static class SagaInfraFixture
     private static string RepoRoot([CallerFilePath] string sourceFile = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(sourceFile)!, "..", "..", ".."));
 
-    // Repos irmãos (Billing/Execução). Localmente, ficam na mesma pasta "Tech Challenge -
-    // FIAP" (um nível acima deste repo) — layout padrão de quem clonou todos os repos
-    // lado a lado. No CI, "actions/checkout" recusa qualquer "path" que escape do próprio
-    // diretório do repo principal (não dá pra checkar fora dele nem indiretamente, mesmo
-    // ainda dentro da pasta "work/<repo>" do runner) — por isso lá eles são checked out
-    // numa subpasta (".sibling-repos/<repo>") e a env var SOAT_SIBLING_REPOS_DIR (setada
-    // só no job de CI, ver ci-cd.yml) aponta pra ela.
+    // Repos irmãos (Billing/Execução) — só uso local (ver README): ficam na mesma pasta
+    // "Tech Challenge - FIAP" (um nível acima deste repo), layout padrão de quem clonou
+    // todos os repos lado a lado.
     private static string SiblingRepoRoot(string repoName)
     {
-        var baseDir = Environment.GetEnvironmentVariable("SOAT_SIBLING_REPOS_DIR");
-
-        if (string.IsNullOrEmpty(baseDir))
-        {
-            baseDir = Path.Combine(RepoRoot(), "..");
-        }
+        var baseDir = Path.Combine(RepoRoot(), "..");
 
         return Path.GetFullPath(Path.Combine(baseDir, repoName));
     }
